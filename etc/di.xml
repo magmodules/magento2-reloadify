@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magmodules\Reloadify\Api\Config\RepositoryInterface"
+                type="Magmodules\Reloadify\Model\Config\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\Log\RepositoryInterface"
+                type="Magmodules\Reloadify\Model\Log\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\WebApi\RepositoryInterface"
+                type="Magmodules\Reloadify\Model\WebApi\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\Selftest\RepositoryInterface"
+                type="Magmodules\Reloadify\Model\Selftest\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\RequestLog\RepositoryInterface"
+                type="Magmodules\Reloadify\Model\RequestLog\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\RequestLog\Data\DataInterface"
+                type="Magmodules\Reloadify\Model\RequestLog\DataModel"/>
+
+    <type name="Magmodules\Reloadify\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Magmodules\Reloadify\Logger\ErrorLogger">
+        <arguments>
+            <argument name="name" xsi:type="string">ReloadifyError</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Magmodules\Reloadify\Logger\Handler\Error</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magmodules\Reloadify\Logger\DebugLogger">
+        <arguments>
+            <argument name="name" xsi:type="string">ReloadifyDebug</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Magmodules\Reloadify\Logger\Handler\Debug</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magmodules\Reloadify\Model\Selftest\Repository">
+        <arguments>
+            <argument name="testList" xsi:type="array">
+                <item name="phpVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\PhpVersion</item>
+                <item name="extensionStatus" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionStatus</item>
+                <item name="magentoVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\MagentoVersion</item>
+                <item name="extensionVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionVersion</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magmodules\Reloadify\Console\Command\Selftest">
+        <arguments>
+            <argument name="selftestRepository" xsi:type="object">Magmodules\Reloadify\Api\Selftest\RepositoryInterface\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- Command line block start -->
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="ReloadifySelftest" xsi:type="object">Magmodules\Reloadify\Console\Command\Selftest</item>
+            </argument>
+        </arguments>
+    </type>
+    <!-- Command line block end -->
+
+</config>

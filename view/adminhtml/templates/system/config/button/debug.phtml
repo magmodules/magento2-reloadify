@@ -1,0 +1,21 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\DebugCheck;
+
+/**
+ * @see \Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\DebugCheck
+ * @var DebugCheck $block
+ */
+?>
+<div id="magmodules-reloadify-result_debug-modal"
+     data-magmodules-reloadify-endpoind-url="<?= $block->escapeUrl($block->getDebugCheckUrl()) ?>">
+    <div id="magmodules-reloadify-result_debug">
+        <div class="result"></div>
+    </div>
+</div>
+<?= $block->getButtonHtml() ?>
+

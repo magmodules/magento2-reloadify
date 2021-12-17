@@ -1,0 +1,20 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\ErrorCheck;
+
+/**
+ * @see \Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\ErrorCheck
+ * @var ErrorCheck $block
+ */
+?>
+<div id="magmodules-reloadify-result_error-modal"
+     data-magmodules-reloadify-endpoind-url="<?= $block->escapeUrl($block->getErrorCheckUrl()) ?>">
+    <div id="magmodules-reloadify-result_error">
+        <div class="result"></div>
+    </div>
+</div>
+<?= $block->getButtonHtml() ?>

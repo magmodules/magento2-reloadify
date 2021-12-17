@@ -1,0 +1,104 @@
+#magmodules-reloadify-button {
+
+    &_test,
+    &_help {
+        color: @color-white;
+        font-weight: 700;
+        font-size: 1.4rem;
+        padding: 1.9rem 3rem 1.5rem 1.5rem;
+        border: none;
+        text-shadow: 0px 1px 1px @magmodules-reloadify-color__1;
+        display: inline-block;
+        min-width: 100px;
+        border-radius:14px;
+        vertical-align: top;
+    }
+
+    &_help {
+        background: @magmodules-reloadify-color__2;
+
+        &:hover {
+            color: @color-white;
+            text-decoration: none;
+        }
+    }
+
+    &_test {
+        background: @magmodules-reloadify-color__3;
+    }
+
+    &_version {
+        background: transparent;
+        padding-left: 0.85rem;
+        margin: -0.8rem 0 -1rem 2rem;
+        white-space: nowrap;
+        color: @magmodules-reloadify-version-btn-border;
+        border: 1px solid @magmodules-reloadify-color-gray_light;
+        transition: 0.3s color, 0.3s border;
+
+        &:before {
+            content: @magmodules-reloadify-icon__repeat;
+            font-family: @icons-reloadify__font-name;
+            background-color: @magmodules-reloadify-version-btn-icon-bg;
+            color: @color-white;
+            border-radius: 50%;
+            width: 2.2rem;
+            height: 2.2rem;
+            display: inline-block;
+            line-height: 2.4rem;
+            font-size: 1.20rem;
+            transition: 0.3s background-color;
+            margin-right: 10px;
+        }
+
+        &:hover {
+            color: @magmodules-reloadify-color__2;
+
+            &::before {
+                background-color: @magmodules-reloadify-color__2;
+            }
+        }
+    }
+
+    &_error,
+    &_debug {
+        border: none;
+        background: none;
+        padding: 0;
+        font-weight: 500;
+        font-size: 1.2rem;
+        color: @magmodules-reloadify-color__dark-gray;
+
+        span {
+            text-decoration: underline;
+        }
+
+        &:before {
+            content: @magmodules-reloadify-icon__external-link;
+            font-family: @icons-reloadify__font-name;
+            font-size: 1.5rem;
+            line-height: 1.5rem;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.6rem;
+        }
+    }
+
+    &_changelog {
+        background: transparent;
+        border: none;
+        text-decoration: underline;
+        padding: 0;
+        display: inline;
+    }
+}
+
+.magmodules-reloadify-button__download:before {
+    margin-right: 0.6rem;
+    line-height: 1rem;
+}
+
+.magmodules-reloadify-disabled {
+    position: absolute;
+    top: 0;
+}

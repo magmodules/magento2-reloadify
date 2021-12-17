@@ -1,0 +1,25 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\VersionCheck;
+
+/**
+ * @see \Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\VersionCheck
+ * @var VersionCheck $block
+ */
+?>
+<div class="magmodules-reloadify-result_version-wrapper"
+     data-magmodules-reloadify-endpoind-url="<?= $block->escapeUrl($block->getVersionCheckUrl()) ?>">
+    <span><?= $block->escapeHtml($block->getVersion()); ?></span>
+    <?= $block->getButtonHtml() ?>
+    <div id="magmodules-reloadify-result_version"></div>
+    <div id="magmodules-reloadify-result_changelog-modal"
+         data-magmodules-reloadify-endpoind-url="<?= $block->escapeUrl($block->getChangeLogUrl()) ?>">
+        <div id="magmodules-reloadify-result_changelog">
+            <ul class="result"></ul>
+        </div>
+    </div>
+</div>

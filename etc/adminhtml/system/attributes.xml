@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<include xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_include.xsd">
+    <group id="attributes" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1"
+           showInStore="1">
+        <label>Attributes</label>
+        <field id="ean" translate="label comment" type="select" sortOrder="40" showInDefault="1"
+               showInWebsite="1" showInStore="1">
+            <label>EAN</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Attributes</source_model>
+            <config_path>magmodules_reloadify/attributes/ean</config_path>
+            <comment>Select the attribute associate with the product EAN. Suggested field: SKU</comment>
+        </field>
+        <field id="name" translate="label comment" type="select" sortOrder="50" showInDefault="1"
+               showInWebsite="1" showInStore="1">
+            <label>Name</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Attributes</source_model>
+            <config_path>magmodules_reloadify/attributes/name</config_path>
+            <comment>Select the attribute associate with the product name. Suggested field: Product Name</comment>
+        </field>
+        <field id="sku" translate="label comment" type="select" sortOrder="60" showInDefault="1"
+               showInWebsite="1" showInStore="1">
+            <label>SKU</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Attributes</source_model>
+            <config_path>magmodules_reloadify/attributes/sku</config_path>
+            <comment>Select the attribute associate with the product SKU. Suggested field: SKU</comment>
+        </field>
+    </group>
+</include>

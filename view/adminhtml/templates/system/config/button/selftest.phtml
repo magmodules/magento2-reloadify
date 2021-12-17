@@ -1,0 +1,19 @@
+<?php
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+use Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\Selftest;
+
+/**
+ * @see \Magmodules\Reloadify\Block\Adminhtml\System\Config\Button\Selftest
+ * @var Selftest $block
+ */
+?>
+<div id="magmodules-reloadify-result_test-modal"
+     data-magmodules-reloadify-endpoind-url="<?= $block->escapeUrl($block->getSelftestUrl()) ?>">
+    <div id="magmodules-reloadify-result_test">
+        <ul class="result"></ul>
+    </div>
+</div>
