@@ -115,7 +115,7 @@ class ExtensionVersion
         $extensionVersion = preg_replace('/^v/', '', $this->configRepository->getExtensionVersion());
         try {
             $data = $this->file->fileGetContents(
-                sprintf('http://version.reloadify.eu/%s.json', ConfigRepository::EXTENSION_CODE)
+                sprintf('https://version.magmodules.eu/%s.json', ConfigRepository::EXTENSION_CODE)
             );
         } catch (Exception $e) {
             $this->logRepository->addDebugLog('Extension version test', $e->getMessage());

@@ -94,7 +94,7 @@ class Changelog extends Action
     private function getVersions(): string
     {
         return $this->file->fileGetContents(
-            sprintf('http://version.reloadify.eu/%s.json', ConfigRepository::EXTENSION_CODE)
+            sprintf('https://version.magmodules.eu/%s.json', ConfigRepository::EXTENSION_CODE)
         );
     }
 }

@@ -62,7 +62,7 @@ class Header extends Field
     public function getImage(): string
     {
         return sprintf(
-            'https://www.reloadify.eu/logo/%s/%s/%s/logo.png',
+            'https://www.magmodules.eu/logo/%s/%s/%s/logo.png',
             $this->configRepository->getExtensionCode(),
             $this->configRepository->getExtensionVersion(),
             $this->configRepository->getMagentoVersion()

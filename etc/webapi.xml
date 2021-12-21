@@ -10,110 +10,110 @@
     <route url="/V1/reloadify/languages" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getLanguages"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/language/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getLanguage"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/profiles" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProfiles"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/profile/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProfile"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/products" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProducts"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/language/:store_id/product/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProduct"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/language/:store_id/products-delta" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProductsDelta"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/variants" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getVariants"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/language/:store_id/variant/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getVariant"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/reviews/" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getReviews"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/review/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getReview"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/categories" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCategories"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/language/:store_id/category/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCategory"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/orders" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getOrders"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/order/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getOrder"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 
     <route url="/V1/reloadify/language/:store_id/carts" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCarts"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
     <route url="/V1/reloadify/cart/:entity_id" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCart"/>
         <resources>
-            <resource ref="Magento_Backend::admin"/>
+            <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
 </routes>

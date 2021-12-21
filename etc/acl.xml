@@ -10,12 +10,9 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Magento_Backend::stores">
-                    <resource id="Magento_Backend::stores_settings">
-                        <resource id="Magento_Config::config">
-                            <resource id="Magmodules_Reloadify::config" title="Reloadify" sortOrder="10"/>
-                        </resource>
-                    </resource>
+                <resource id="Magmodules_Reloadify::general" title="Reloadify" sortOrder="100">
+                    <resource id="Magmodules_Reloadify::config" title="Config" sortOrder="10"/>
+                    <resource id="Magmodules_Reloadify::webapi" title="WebApi" sortOrder="20"/>
                 </resource>
             </resource>
         </resources>

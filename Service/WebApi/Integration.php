@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Config\Model\ResourceModel\Config;
+use Magento\Framework\Exception\IntegrationException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Integration\Api\AuthorizationServiceInterface;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Api\OauthServiceInterface;
@@ -41,6 +44,11 @@ class Integration
     private $logRepository;
 
     /**
+     * @var Config
+     */
+    private $configResource;
+
+    /**
      * Integration constructor.
      * @param IntegrationServiceInterface $integrationService
      * @param OauthServiceInterface $oauthService
@@ -51,48 +59,50 @@ class Integration
         IntegrationServiceInterface $integrationService,
         OauthServiceInterface $oauthService,
         AuthorizationServiceInterface $authorizationService,
-        LogRepository $logRepository
+        Config $configResource
     ) {
         $this->integrationService = $integrationService;
         $this->oauthService = $oauthService;
         $this->authorizationService = $authorizationService;
-        $this->logRepository = $logRepository;
+        $this->configResource = $configResource;
     }
 
     /**
      * Create a new integration
      *
+     * @param bool $update
      * @return string
+     * @throws IntegrationException
+     * @throws LocalizedException
      */
-    public function execute(): string
+    public function execute(bool $update = false): string
     {
         $integration = $this->integrationService->findByName(self::INTEGRATION_NAME);
-        if ($integrationId = $integration->getId()) {
+        if ($integration->getId() && !$update) {
             $customerId = $integration->getConsumerId();
             return $this->oauthService->getAccessToken($customerId)->getToken();
         }
+
+        if ($integration->getId() && $update) {
+            $this->integrationService->delete($integration->getId());
+        }
+
         $integrationData = [
             'name' => self::INTEGRATION_NAME,
             'endpoint' => self::ENDPOINT_URL,
             'status' => '1',
             'setup_type' => '0',
         ];
-        try {
-            $integration = $this->integrationService->create($integrationData);
-        } catch (\Exception $exception) {
-            $this->logRepository->addErrorLog('Create integration', $exception->getMessage());
-            return $exception->getMessage();
-        }
+
+        $integration = $this->integrationService->create($integrationData);
         $integrationId = $integration->getId();
         $customerId = $integration->getConsumerId();
+        $this->authorizationService->grantPermissions($integrationId, ['Magmodules_Reloadify::webapi']);
 
-        try {
-            $this->authorizationService->grantAllPermissions($integrationId);
-        } catch (\Exception $exception) {
-            $this->logRepository->addErrorLog('Grant integration permissions', $exception->getMessage());
-            return $exception->getMessage();
-        }
         $this->oauthService->createAccessToken($customerId, true);
-        return $this->oauthService->getAccessToken($customerId)->getToken();
+        $token = $this->oauthService->getAccessToken($customerId)->getToken();
+        $this->configResource->saveConfig('magmodules_reloadify/general/token', $token, 'default', 0);
+
+        return $token;
     }
 }

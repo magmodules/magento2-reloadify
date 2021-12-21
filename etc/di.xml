@@ -64,6 +64,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="ReloadifySelftest" xsi:type="object">Magmodules\Reloadify\Console\Command\Selftest</item>
+                <item name="ReloadifyIntegration" xsi:type="object">Magmodules\Reloadify\Console\Command\Integration</item>
             </argument>
         </arguments>
     </type>

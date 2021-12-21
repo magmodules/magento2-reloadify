@@ -17,7 +17,7 @@ interface RepositoryInterface
 
     const EXTENSION_CODE = 'Magmodules_Reloadify';
     const XML_PATH_PREFIX = 'magmodules_reloadify';
-    const MODULE_SUPPORT_LINK = 'https://www.reloadify.eu/help/%s';
+    const MODULE_SUPPORT_LINK = 'https://www.magmodules.eu/help/%s';
 
     /* General */
     const XML_PATH_EXTENSION_VERSION = '%s/general/version';
