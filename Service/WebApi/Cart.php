@@ -7,10 +7,13 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\ResourceModel\Quote\CollectionFactory;
 use Magento\Quote\Model\ResourceModel\Quote\Collection;
 use Magento\Quote\Model\Quote\Item;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
 
 /**
  * Cart web API service class
@@ -31,15 +34,32 @@ class Cart
      * @var CollectionFactory
      */
     private $quoteCollectionFactory;
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+    /**
+     * @var EncryptorInterface
+     */
+    private $encryptor;
+
+    private $storeUrl = null;
 
     /**
-     * Product constructor.
+     * Cart constructor.
+     *
      * @param CollectionFactory $quoteCollectionFactory
+     * @param StoreManagerInterface $storeManager
+     * @param EncryptorInterface $encryptor
      */
     public function __construct(
-        CollectionFactory $quoteCollectionFactory
+        CollectionFactory $quoteCollectionFactory,
+        StoreManagerInterface $storeManager,
+        EncryptorInterface $encryptor
     ) {
         $this->quoteCollectionFactory = $quoteCollectionFactory;
+        $this->storeManager = $storeManager;
+        $this->encryptor = $encryptor;
     }
 
     /**
@@ -71,6 +91,7 @@ class Cart
                 "id" => $quote->getId(),
                 "currency" => $quote->getQuoteCurrencyCode(),
                 "price" => $quote->getGrandTotal(),
+                "recovery_url" => $this->getRecoveryUrl($storeId, (string)$quote->getId()),
                 "profile" => $profile,
                 "product_ids" => $this->getProducts($quote),
                 "created_at" => $quote->getCreatedAt(),
@@ -109,5 +130,42 @@ class Cart
             $quotes->addFieldToFilter(self::DEFAULT_MAP[$field], $filter);
         }
         return $quotes;
+    }
+
+    /**
+     * Get recovery url with encrypted quote_id
+     *
+     * @param int $storeId
+     * @param int $quoteId
+     *
+     * @return string
+     */
+    private function getRecoveryUrl(int $storeId, string $quoteId): string
+    {
+        $storeUrl = $this->getStoreUrl($storeId);
+        if ($storeUrl) {
+            return $storeUrl . 'reloadify/cart/restore/?id=' . urlencode($this->encryptor->encrypt($quoteId));
+        } else {
+            return 'the store does not exists';
+        }
+    }
+
+    /**
+     * Get store url
+     *
+     * @param int $storeId
+     *
+     * @return string
+     */
+    private function getStoreUrl(int $storeId): string
+    {
+        if ($this->storeUrl === null) {
+            try {
+                $this->storeUrl = $this->storeManager->getStore($storeId)->getBaseUrl();
+            } catch (NoSuchEntityException $e) {
+                $this->storeUrl = '';
+            }
+        }
+        return $this->storeUrl;
     }
 }
