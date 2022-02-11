@@ -15,17 +15,17 @@ use Magento\Store\Api\Data\StoreInterface;
 interface RepositoryInterface
 {
 
-    const EXTENSION_CODE = 'Magmodules_Reloadify';
-    const XML_PATH_PREFIX = 'magmodules_reloadify';
-    const MODULE_SUPPORT_LINK = 'https://www.magmodules.eu/help/%s';
+    public const EXTENSION_CODE = 'Magmodules_Reloadify';
+    public const XML_PATH_PREFIX = 'magmodules_reloadify';
+    public const MODULE_SUPPORT_LINK = 'https://www.magmodules.eu/help/%s';
 
     /* General */
-    const XML_PATH_EXTENSION_VERSION = '%s/general/version';
-    const XML_PATH_EXTENSION_ENABLE = '%s/general/enable';
-    const XML_PATH_DEBUG = '%s/general/debug';
-    const XML_PATH_EAN = '%s/attributes/ean';
-    const XML_PATH_NAME = '%s/attributes/name';
-    const XML_PATH_SKU = '%s/attributes/sku';
+    public const XML_PATH_EXTENSION_VERSION = '%s/general/version';
+    public const XML_PATH_EXTENSION_ENABLE = '%s/general/enable';
+    public const XML_PATH_DEBUG = '%s/general/debug';
+    public const XML_PATH_EAN = '%s/attributes/ean';
+    public const XML_PATH_NAME = '%s/attributes/name';
+    public const XML_PATH_SKU = '%s/attributes/sku';
 
     /**
      * Get extension version
@@ -96,9 +96,10 @@ interface RepositoryInterface
     /**
      * Get current store
      *
+     * @param int|null $storeId
      * @return StoreInterface
      */
-    public function getStore(): StoreInterface;
+    public function getStore(int $storeId = null): StoreInterface;
 
     /**
      * Support link for extension.

@@ -24,8 +24,8 @@ class Integration extends Command
     /**
      * Command call name
      */
-    const COMMAND_NAME = 'reloadify:integration';
-    const COMMAND_OPTION_UPDATE = 'update';
+    public const COMMAND_NAME = 'reloadify:integration';
+    public const COMMAND_OPTION_UPDATE = 'update';
 
     /**
      * @var CreateToken

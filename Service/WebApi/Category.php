@@ -16,7 +16,7 @@ use Magento\Catalog\Model\ResourceModel\Category\Collection;
 class Category
 {
 
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" =>'entity_id',
         "name" => 'name',
         "created_at" => 'created_at',

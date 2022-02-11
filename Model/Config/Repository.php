@@ -73,10 +73,10 @@ class Repository implements ConfigRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getStore(): StoreInterface
+    public function getStore(int $storeId = null): StoreInterface
     {
         try {
-            return $this->storeManager->getStore();
+            return $this->storeManager->getStore($storeId);
         } catch (Exception $e) {
             if ($store = $this->storeManager->getDefaultStoreView()) {
                 return $store;

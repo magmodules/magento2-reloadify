@@ -21,7 +21,7 @@ use Magento\Framework\Encryption\EncryptorInterface;
 class Cart
 {
 
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => 'entity_id',
         "currency" => 'quote_currency_code',
         "price" => 'grand_total',

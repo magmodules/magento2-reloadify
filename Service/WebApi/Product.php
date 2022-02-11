@@ -24,7 +24,7 @@ class Product
     /**
      *
      */
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => "entity_id",
         "name" => "name",
         "short_description" => "short_description",

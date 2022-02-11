@@ -23,22 +23,22 @@ interface RepositoryInterface
     /**
      * Exception text
      */
-    const INPUT_EXCEPTION = 'An ID is needed. Set the ID and try again.';
+    public const INPUT_EXCEPTION = 'An ID is needed. Set the ID and try again.';
 
     /**
      * Exception text
      */
-    const NO_SUCH_ENTITY_EXCEPTION = 'The RequestLog with id "%1" does not exist.';
+    public const NO_SUCH_ENTITY_EXCEPTION = 'The RequestLog with id "%1" does not exist.';
 
     /**
      * Exception text
      */
-    const COULD_NOT_DELETE_EXCEPTION = 'Could not delete the RequestLog: %1';
+    public const COULD_NOT_DELETE_EXCEPTION = 'Could not delete the RequestLog: %1';
 
     /**
      * Exception text
      */
-    const COULD_NOT_SAVE_EXCEPTION = 'Could not save the RequestLog: %1';
+    public const COULD_NOT_SAVE_EXCEPTION = 'Could not save the RequestLog: %1';
 
     /**
      * Loads a specified RequestLog

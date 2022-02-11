@@ -16,7 +16,7 @@ use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
  */
 class Order
 {
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => 'entity_id',
         "currency" => 'order_currency_code',
         "number" => 'increment_id',

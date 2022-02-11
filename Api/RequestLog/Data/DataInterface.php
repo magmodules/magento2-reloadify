@@ -16,9 +16,9 @@ use Magento\Framework\Api\ExtensibleDataInterface;
 interface DataInterface extends ExtensibleDataInterface
 {
 
-    const TYPE = 'type';
-    const STORE_ID = 'store_id';
-    const CREATED_AT = 'created_at';
+    public const TYPE = 'type';
+    public const STORE_ID = 'store_id';
+    public const CREATED_AT = 'created_at';
 
     /**
      * @return string

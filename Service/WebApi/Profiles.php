@@ -18,13 +18,13 @@ use Magento\Store\Model\StoreManagerInterface;
  */
 class Profiles
 {
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => 'entity_id',
         "email" => 'email',
         "gender" => 'gender',
     ];
 
-    const GENDER = [
+    public const GENDER = [
         'Not Specified',
         'Male',
         'Female',
