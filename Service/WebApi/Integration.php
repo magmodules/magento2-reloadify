@@ -20,8 +20,8 @@ use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
  */
 class Integration
 {
-    const ENDPOINT_URL = '';
-    const INTEGRATION_NAME = 'Reloadify Integration';
+    public const ENDPOINT_URL = '';
+    public const INTEGRATION_NAME = 'Reloadify Integration';
 
     /**
      * @var IntegrationServiceInterface

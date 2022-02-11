@@ -21,7 +21,7 @@ class Review
     /**
      *
      */
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => 'review_id',
         "name" => 'title',
         "product_id" => 'entity_pk_value',

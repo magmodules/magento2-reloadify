@@ -23,7 +23,7 @@ class Selftest extends Command
     /**
      * Command call name
      */
-    const COMMAND_NAME = 'reloadify:selftest';
+    public const COMMAND_NAME = 'reloadify:selftest';
 
     /**
      * @var SelftestRepository

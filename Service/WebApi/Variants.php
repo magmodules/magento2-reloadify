@@ -19,7 +19,7 @@ use Magmodules\Reloadify\Service\ProductData\Stock;
  */
 class Variants
 {
-    const DEFAULT_MAP = [
+    public const DEFAULT_MAP = [
         "id" => 'entity_id',
         "title" => 'name',
         "article_code" => 'sku',

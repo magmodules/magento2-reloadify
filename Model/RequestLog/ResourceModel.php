@@ -18,12 +18,12 @@ class ResourceModel extends AbstractDb
     /**
      * Main table name
      */
-    const ENTITY_TABLE = 'reloadify_request_log';
+    public const ENTITY_TABLE = 'reloadify_request_log';
 
     /**
      * Primary field name
      */
-    const PRIMARY = 'entity_id';
+    public const PRIMARY = 'entity_id';
 
     /**
      * @inheritDoc
