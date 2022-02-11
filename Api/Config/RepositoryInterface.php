@@ -96,9 +96,10 @@ interface RepositoryInterface
     /**
      * Get current store
      *
+     * @param int|null $storeId
      * @return StoreInterface
      */
-    public function getStore(): StoreInterface;
+    public function getStore(int $storeId = null): StoreInterface;
 
     /**
      * Support link for extension.

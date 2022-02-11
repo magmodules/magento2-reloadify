@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Service\WebApi;
 
 use Magento\Catalog\Helper\Image;
-use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
+use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Framework\App\ResourceConnection;
-use Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
+use Magmodules\Reloadify\Service\ProductData\Stock;
 
 /**
  * Variants web API service class
@@ -48,9 +48,9 @@ class Variants
     private $resourceConnection;
 
     /**
-     * @var GetSalableQuantityDataBySku
+     * @var Stock
      */
-    private $getSalableQuantityDataBySku;
+    private $stock;
 
     /**
      * @var ConfigRepository
@@ -62,21 +62,21 @@ class Variants
      * @param ProductCollectionFactory $productsCollectionFactory
      * @param Image $image
      * @param ResourceConnection $resourceConnection
-     * @param GetSalableQuantityDataBySku $getSalableQuantityDataBySku
      * @param ConfigRepository $configRepository
+     * @param Stock $stock
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
         Image $image,
         ResourceConnection $resourceConnection,
-        GetSalableQuantityDataBySku $getSalableQuantityDataBySku,
-        ConfigRepository $configRepository
+        ConfigRepository $configRepository,
+        Stock $stock
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->image = $image;
         $this->resourceConnection = $resourceConnection;
-        $this->getSalableQuantityDataBySku = $getSalableQuantityDataBySku;
         $this->configRepository = $configRepository;
+        $this->stock = $stock;
     }
 
     /**
@@ -96,11 +96,13 @@ class Variants
         } catch (\Exception $exception) {
             return [];
         }
+        $websiteId = $this->configRepository->getStore((int)$storeId)->getWebsiteId();
         $data = [];
         $products = $this->applyFilter($products, $extra['filter']);
         $ean = $this->configRepository->getEan($storeId);
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
+        $stockData = $this->stock->execute($products->getAllIds());
         /* @var \Magento\Catalog\Model\Product $product*/
         foreach ($products as $product) {
             if (!isset($productIds[$product->getId()])) {
@@ -119,7 +121,9 @@ class Variants
                 "price_incl" => $product->getPrice(),
                 "unit_price" => $product->getPrice(),
                 "sku" => ($sku) ? $product->getData($sku) : '',
-                "stock_level" => $this->getSalableQuantityDataBySku->execute($product->getSku())[0]['qty'],
+                "stock_level" => isset($stockData[$product->getId()]['msi'][$websiteId])
+                    ? $stockData[$product->getId()]['msi'][$websiteId]['salable_qty']
+                    : $stockData[$product->getId()]['qty'],
                 "product_id" => $productIds[$product->getId()],
                 "created_at" => $product->getCreatedAt(),
                 "updated_at" => $product->getUpdatedAt()
