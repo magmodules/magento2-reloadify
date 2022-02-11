@@ -7,9 +7,11 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Controller\Cart;
 
+use Magento\Backend\Model\View\Result\Redirect;
 use Magento\Checkout\Model\Session;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Quote\Api\CartRepositoryInterface;
@@ -58,16 +60,18 @@ class Restore extends Action
     public function execute()
     {
         $encryptedQuoteId = $this->getRequest()->getParam('id');
+        /** @var Redirect $resultRedirect */
+        $resultRedirect = $this->resultFactory->create(ResultFactory::TYPE_REDIRECT);
         if ($encryptedQuoteId) {
             try {
                 $quoteId = $this->encryptor->decrypt($encryptedQuoteId);
                 $quote = $this->quoteRepository->get($quoteId);
                 $this->checkoutSession->replaceQuote($quote);
-                return $this->_redirect('checkout/cart/index');
+                return $resultRedirect->setPath('checkout/cart/index');
             } catch (NoSuchEntityException $e) {
-                return $this->_redirect('cms/index/index');
+                return $resultRedirect->setPath('cms/index/index');
             }
         }
-        return $this->_redirect('cms/index/index');
+        return $resultRedirect->setPath('cms/index/index');
     }
 }
