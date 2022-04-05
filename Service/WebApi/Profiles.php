@@ -24,13 +24,6 @@ class Profiles
         "gender" => 'gender',
     ];
 
-    public const GENDER = [
-        'Not Specified',
-        'Male',
-        'Female',
-        'Not Specified'
-    ];
-
     /**
      * @var CollectionFactory
      */
@@ -90,7 +83,10 @@ class Profiles
             $mainData = [
                     "id" => $customer->getId(),
                     "email" => $customer->getEmail(),
-                    "gender" => self::GENDER[$customer->getGender()],
+                    "gender" => $customer->getGender() ?
+                        $customer->getAttribute('gender')->getSource()
+                            ->getOptionText($customer->getData('gender'))
+                        : 'Not Specified',
                     "active" => true,
                     "subscribed_to_newsletter" => $subscription->isSubscribed(),
             ];
