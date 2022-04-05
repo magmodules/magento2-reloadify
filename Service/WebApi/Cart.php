@@ -7,13 +7,15 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\ResourceModel\Quote\CollectionFactory;
-use Magento\Quote\Model\ResourceModel\Quote\Collection;
 use Magento\Quote\Model\Quote\Item;
+use Magento\Quote\Model\ResourceModel\Quote\Collection;
+use Magento\Quote\Model\ResourceModel\Quote\CollectionFactory;
 use Magento\Store\Model\StoreManagerInterface;
-use Magento\Framework\Encryption\EncryptorInterface;
 
 /**
  * Cart web API service class
@@ -21,10 +23,13 @@ use Magento\Framework\Encryption\EncryptorInterface;
 class Cart
 {
 
+    /**
+     * Default attribute map output
+     */
     public const DEFAULT_MAP = [
-        "id" => 'entity_id',
-        "currency" => 'quote_currency_code',
-        "price" => 'grand_total',
+        "id"         => 'entity_id',
+        "currency"   => 'quote_currency_code',
+        "price"      => 'grand_total',
         "profile_id" => 'customer_id',
         "created_at" => 'created_at',
         "updated_at" => 'updated_at'
@@ -42,85 +47,91 @@ class Cart
      * @var EncryptorInterface
      */
     private $encryptor;
-
+    /**
+     * @var null
+     */
     private $storeUrl = null;
+    /**
+     * @var CollectionProcessorInterface
+     */
+    private $collectionProcessor;
 
     /**
      * Cart constructor.
      *
-     * @param CollectionFactory $quoteCollectionFactory
+     * @param CollectionFactory     $quoteCollectionFactory
      * @param StoreManagerInterface $storeManager
-     * @param EncryptorInterface $encryptor
+     * @param EncryptorInterface    $encryptor
      */
     public function __construct(
         CollectionFactory $quoteCollectionFactory,
         StoreManagerInterface $storeManager,
-        EncryptorInterface $encryptor
+        EncryptorInterface $encryptor,
+        CollectionProcessorInterface $collectionProcessor
     ) {
         $this->quoteCollectionFactory = $quoteCollectionFactory;
         $this->storeManager = $storeManager;
         $this->encryptor = $encryptor;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
-     * @param int $storeId
-     * @param array $extra
+     * @param int                          $storeId
+     * @param array                        $extra
+     * @param SearchCriteriaInterface|null $searchCriteria
+     *
      * @return array
      */
-    public function execute(int $storeId, array $extra = []): array
+    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
-        $quotes = $this->quoteCollectionFactory->create();
-        if ($extra['entity_id']) {
-            $quotes->addFieldToFilter('entity_id', $extra['entity_id']);
-        } else {
-            $quotes->addFieldToFilter('store_id', $storeId);
-            $quotes = $this->applyFilter($quotes, $extra['filter']);
-        }
-        /* @var Quote $quote*/
-        foreach ($quotes as $quote) {
-            $profile = null;
-            if ($quote->getCustomerId()) {
-                $customer = $quote->getCustomer();
-                $profile = [
-                    'id' => $quote->getCustomerId(),
-                    'email' => $customer->getEmail()
-                ];
-            }
+        $collection = $this->getCollection($storeId, $extra, $searchCriteria);
+
+        /* @var Quote $quote */
+        foreach ($collection as $quote) {
             $data[] = [
-                "id" => $quote->getId(),
-                "currency" => $quote->getQuoteCurrencyCode(),
-                "price" => $quote->getGrandTotal(),
+                "id"           => $quote->getId(),
+                "currency"     => $quote->getQuoteCurrencyCode(),
+                "price"        => $quote->getGrandTotal(),
                 "recovery_url" => $this->getRecoveryUrl($storeId, (string)$quote->getId()),
-                "profile" => $profile,
-                "product_ids" => $this->getProducts($quote),
-                "created_at" => $quote->getCreatedAt(),
-                "updated_at" => $quote->getUpdatedAt()
+                "profile"      => $this->getProfileData($quote),
+                "product_ids"  => $this->getProducts($quote),
+                "created_at"   => $quote->getCreatedAt(),
+                "updated_at"   => $quote->getUpdatedAt()
             ];
         }
         return $data;
     }
 
     /**
-     * @param Quote $quote
-     * @return array
+     * @param int                          $storeId
+     * @param array                        $extra
+     * @param SearchCriteriaInterface|null $searchCriteria
+     *
+     * @return Collection
      */
-    private function getProducts(Quote $quote)
-    {
-        $quoteProducts = [];
-        /* @var Item $item */
-        foreach ($quote->getAllItems() as $item) {
-            $quoteProducts[] = [
-                'id' => $item->getProductId(),
-                'quantity' => $item->getQty()
-            ];
+    private function getCollection(
+        int $storeId,
+        array $extra = [],
+        SearchCriteriaInterface $searchCriteria = null
+    ): Collection {
+        $collection = $this->quoteCollectionFactory->create();
+        if ($extra['entity_id']) {
+            $collection->addFieldToFilter('entity_id', $extra['entity_id']);
+        } else {
+            $collection->addFieldToFilter('store_id', $storeId);
+            $collection = $this->applyFilter($collection, $extra['filter']);
         }
-        return $quoteProducts;
+
+        if ($searchCriteria !== null) {
+            $this->collectionProcessor->process($searchCriteria, $collection);
+        }
+        return $collection;
     }
 
     /**
      * @param Collection $quotes
-     * @param array $filters
+     * @param array      $filters
      *
      * @return Collection
      */
@@ -135,8 +146,8 @@ class Cart
     /**
      * Get recovery url with encrypted quote_id
      *
-     * @param int $storeId
-     * @param int $quoteId
+     * @param int    $storeId
+     * @param string $quoteId
      *
      * @return string
      */
@@ -167,5 +178,40 @@ class Cart
             }
         }
         return $this->storeUrl;
+    }
+
+    /**
+     * @param $quote
+     *
+     * @return array|null
+     */
+    private function getProfileData($quote): ?array
+    {
+        if ($quote->getCustomerId()) {
+            $customer = $quote->getCustomer();
+            return [
+                'id'    => $quote->getCustomerId(),
+                'email' => $customer->getEmail()
+            ];
+        }
+        return null;
+    }
+
+    /**
+     * @param Quote $quote
+     *
+     * @return array
+     */
+    private function getProducts(Quote $quote)
+    {
+        $quoteProducts = [];
+        /* @var Item $item */
+        foreach ($quote->getAllItems() as $item) {
+            $quoteProducts[] = [
+                'id'       => $item->getProductId(),
+                'quantity' => $item->getQty()
+            ];
+        }
+        return $quoteProducts;
     }
 }
