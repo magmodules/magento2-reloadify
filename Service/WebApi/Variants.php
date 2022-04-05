@@ -10,6 +10,8 @@ namespace Magmodules\Reloadify\Service\WebApi;
 use Magento\Catalog\Helper\Image;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Service\ProductData\Stock;
@@ -19,114 +21,110 @@ use Magmodules\Reloadify\Service\ProductData\Stock;
  */
 class Variants
 {
+
+    /**
+     * Default attribute map output
+     */
     public const DEFAULT_MAP = [
-        "id" => 'entity_id',
-        "title" => 'name',
+        "id"           => 'entity_id',
+        "title"        => 'name',
         "article_code" => 'sku',
-        "price_cost" => 'cost',
-        "price_excl" => 'price',
-        "price_incl" => 'price',
-        "unit_price" => 'price',
-        "sku" => 'sku',
-        "created_at" => 'created_at',
-        "updated_at" => 'updated_at'
+        "price_cost"   => 'cost',
+        "price_excl"   => 'price',
+        "price_incl"   => 'price',
+        "unit_price"   => 'price',
+        "sku"          => 'sku',
+        "created_at"   => 'created_at',
+        "updated_at"   => 'updated_at'
     ];
 
     /**
      * @var ProductCollectionFactory
      */
     private $productsCollectionFactory;
-
     /**
      * @var Image
      */
     private $image;
-
     /**
      * @var ResourceConnection
      */
     private $resourceConnection;
-
     /**
      * @var Stock
      */
     private $stock;
-
     /**
      * @var ConfigRepository
      */
     private $configRepository;
+    /**
+     * @var CollectionProcessorInterface
+     */
+    private $collectionProcessor;
 
     /**
      * Variants constructor.
+     *
      * @param ProductCollectionFactory $productsCollectionFactory
-     * @param Image $image
-     * @param ResourceConnection $resourceConnection
-     * @param ConfigRepository $configRepository
-     * @param Stock $stock
+     * @param Image                    $image
+     * @param ResourceConnection       $resourceConnection
+     * @param ConfigRepository         $configRepository
+     * @param Stock                    $stock
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
         Image $image,
         ResourceConnection $resourceConnection,
         ConfigRepository $configRepository,
-        Stock $stock
+        Stock $stock,
+        CollectionProcessorInterface $collectionProcessor
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->image = $image;
         $this->resourceConnection = $resourceConnection;
         $this->configRepository = $configRepository;
         $this->stock = $stock;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
-     * @param int $storeId
+     * @param int   $storeId
      * @param array $extra
+     *
      * @return array
      */
-    public function execute(int $storeId, array $extra = []): array
+    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
     {
         $productIds = $this->getChildProducts($extra['entity_id']);
-        try {
-            $products = $this->productsCollectionFactory->create()
-                ->addAttributeToSelect('*')
-                ->addFieldToFilter('entity_id', ['in' => array_keys($productIds)])
-                ->addPriceData()
-                ->setStore($storeId);
-        } catch (\Exception $exception) {
-            return [];
-        }
         $websiteId = $this->configRepository->getStore((int)$storeId)->getWebsiteId();
-        $data = [];
-        $products = $this->applyFilter($products, $extra['filter']);
         $ean = $this->configRepository->getEan($storeId);
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
-        $stockData = $this->stock->execute($products->getAllIds());
-        /* @var \Magento\Catalog\Model\Product $product*/
-        foreach ($products as $product) {
+
+        $data = [];
+        $collection = $this->getCollection($storeId, $extra, $searchCriteria);
+        $stockData = $this->stock->execute($collection->getAllIds());
+
+        foreach ($collection as $product) {
             if (!isset($productIds[$product->getId()])) {
                 continue;
             }
             $data[] = [
-                "id" => $product->getId(),
-                "title" => ($name) ? $product->getData($name) : '',
+                "id"           => $product->getId(),
+                "title"        => ($name) ? $product->getData($name) : '',
                 "article_code" => $product->getSku(),
-                "ean" => ($ean) ? $product->getData($ean) : '',
-                "main_image" => $this->image->init($product, 'image')
-                    ->setImageFile($product->getImage())
-                    ->getUrl(),
-                "price_cost" => $product->getCost(),
-                "price_excl" => $product->getPrice(),
-                "price_incl" => $product->getPrice(),
-                "unit_price" => $product->getPrice(),
-                "sku" => ($sku) ? $product->getData($sku) : '',
-                "stock_level" => isset($stockData[$product->getId()]['msi'][$websiteId])
-                    ? $stockData[$product->getId()]['msi'][$websiteId]['salable_qty']
-                    : $stockData[$product->getId()]['qty'],
-                "product_id" => $productIds[$product->getId()],
-                "created_at" => $product->getCreatedAt(),
-                "updated_at" => $product->getUpdatedAt()
+                "ean"          => ($ean) ? $product->getData($ean) : '',
+                "main_image"   => $this->getMainImage($product),
+                "price_cost"   => $product->getCost(),
+                "price_excl"   => $product->getPrice(),
+                "price_incl"   => $product->getPrice(),
+                "unit_price"   => $product->getPrice(),
+                "sku"          => ($sku) ? $product->getData($sku) : '',
+                "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
+                "product_id"   => $productIds[$product->getId()],
+                "created_at"   => $product->getCreatedAt(),
+                "updated_at"   => $product->getUpdatedAt()
             ];
         }
         return $data;
@@ -134,6 +132,7 @@ class Variants
 
     /**
      * @param int|null $entityId
+     *
      * @return array
      */
     private function getChildProducts(int $entityId = null)
@@ -150,8 +149,36 @@ class Variants
     }
 
     /**
+     * @param int                          $storeId
+     * @param array                        $extra
+     * @param SearchCriteriaInterface|null $searchCriteria
+     *
+     * @return Collection
+     */
+    private function getCollection(
+        int $storeId,
+        array $extra = [],
+        SearchCriteriaInterface $searchCriteria = null
+    ): Collection {
+        $productIds = $this->getChildProducts($extra['entity_id']);
+        $collection = $this->productsCollectionFactory->create()
+            ->addAttributeToSelect('*')
+            ->addFieldToFilter('entity_id', ['in' => array_keys($productIds)])
+            ->addPriceData()
+            ->setStore($storeId);
+
+        $collection = $this->applyFilter($collection, $extra['filter']);
+
+        if ($searchCriteria !== null) {
+            $this->collectionProcessor->process($searchCriteria, $collection);
+        }
+
+        return $collection;
+    }
+
+    /**
      * @param Collection $products
-     * @param array $filters
+     * @param array      $filters
      *
      * @return Collection
      */
@@ -161,5 +188,29 @@ class Variants
             $products->addFieldToFilter(self::DEFAULT_MAP[$field], $filter);
         }
         return $products;
+    }
+
+    /**
+     * @param $product
+     *
+     * @return string
+     */
+    private function getMainImage($product)
+    {
+        return $this->image->init($product, 'image')
+            ->setImageFile($product->getImage())
+            ->getUrl();
+    }
+
+    /**
+     * @param $product
+     *
+     * @return string
+     */
+    private function getStockLevel($product, $stockData, $websiteId)
+    {
+        return isset($stockData[$product->getId()]['msi'][$websiteId])
+            ? $stockData[$product->getId()]['msi'][$websiteId]['salable_qty']
+            : $stockData[$product->getId()]['qty'];
     }
 }

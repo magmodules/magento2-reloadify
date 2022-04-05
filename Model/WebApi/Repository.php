@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Model\WebApi;
 
+use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magmodules\Reloadify\Api\WebApi\RepositoryInterface;
@@ -18,8 +19,6 @@ use Magmodules\Reloadify\Service\WebApi\Product;
 use Magmodules\Reloadify\Service\WebApi\Profiles;
 use Magmodules\Reloadify\Service\WebApi\Review;
 use Magmodules\Reloadify\Service\WebApi\Variants;
-use Magmodules\Reloadify\Api\RequestLog\RepositoryInterface as RequestLogRepository;
-use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
 
 /**
  * Web API repository class
@@ -31,12 +30,10 @@ class Repository implements RepositoryInterface
      * @var Category
      */
     private $category;
-
     /**
      * @var Product
      */
     private $product;
-
     /**
      * @var Language
      */
@@ -45,42 +42,26 @@ class Repository implements RepositoryInterface
      * @var Profiles
      */
     private $profiles;
-
     /**
      * @var Order
      */
     private $order;
-
     /**
      * @var Cart
      */
     private $cart;
-
     /**
      * @var Review
      */
     private $review;
-
     /**
      * @var Variants
      */
     private $variants;
-
-    /**
-     * @var RequestLogRepository
-     */
-    private $requestLogRepository;
-
-    /**
-     * @var LogRepository
-     */
-    private $logRepository;
-
     /**
      * @var RequestInterface
      */
     private $request;
-
     /**
      * @var Json
      */
@@ -88,18 +69,17 @@ class Repository implements RepositoryInterface
 
     /**
      * Repository constructor.
-     * @param Category $category
-     * @param Product $product
-     * @param Language $language
-     * @param Profiles $profiles
-     * @param Order $order
-     * @param Cart $cart
-     * @param Review $review
-     * @param Variants $variants
-     * @param RequestLogRepository $requestLogRepository
-     * @param LogRepository $logRepository
+     *
+     * @param Category         $category
+     * @param Product          $product
+     * @param Language         $language
+     * @param Profiles         $profiles
+     * @param Order            $order
+     * @param Cart             $cart
+     * @param Review           $review
+     * @param Variants         $variants
      * @param RequestInterface $requestInterface
-     * @param Json $json
+     * @param Json             $json
      */
     public function __construct(
         Category $category,
@@ -110,8 +90,6 @@ class Repository implements RepositoryInterface
         Cart $cart,
         Review $review,
         Variants $variants,
-        RequestLogRepository $requestLogRepository,
-        LogRepository $logRepository,
         RequestInterface $requestInterface,
         Json $json
     ) {
@@ -123,8 +101,6 @@ class Repository implements RepositoryInterface
         $this->cart = $cart;
         $this->review = $review;
         $this->variants = $variants;
-        $this->requestLogRepository = $requestLogRepository;
-        $this->logRepository = $logRepository;
         $this->request = $requestInterface;
         $this->json = $json;
     }
@@ -132,33 +108,17 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getLanguages(): array
-    {
-        $this->addLog(0, 'language');
-        return $this->language->execute();
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getLanguage(int $entityId): array
     {
-        $this->addLog(0, 'language');
         return $this->language->execute($entityId);
     }
 
     /**
      * @inheritDoc
      */
-    public function getProfiles(int $storeId): array
+    public function getLanguages(): array
     {
-        $this->addLog($storeId, 'profiles');
-        try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
-        } catch (\Exception $exception) {
-            $filter = [];
-        }
-        return $this->profiles->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->language->execute();
     }
 
     /**
@@ -166,22 +126,20 @@ class Repository implements RepositoryInterface
      */
     public function getProfile(int $entityId): array
     {
-        $this->addLog(0, 'profile_single');
         return $this->profiles->execute(0, ['entity_id' => $entityId, 'filter' => []]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getProducts(int $storeId): array
+    public function getProfiles(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $this->addLog($storeId, 'products');
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        return $this->product->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->profiles->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 
     /**
@@ -189,22 +147,28 @@ class Repository implements RepositoryInterface
      */
     public function getProduct(int $storeId, int $entityId = null): array
     {
-        $this->addLog($storeId, 'product_single');
         return $this->product->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getVariants(int $storeId): array
+    public function getProducts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $this->addLog($storeId, 'variants');
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        return $this->variants->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->product->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getProductsDelta(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    {
+        return $this->product->execute($storeId, ['entity_id' => null, 'filter' => ['delta']], $searchCriteria);
     }
 
     /**
@@ -212,22 +176,20 @@ class Repository implements RepositoryInterface
      */
     public function getVariant(int $storeId, int $entityId = null): array
     {
-        $this->addLog($storeId, 'variant_single');
         return $this->variants->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getReviews(int $storeId): array
+    public function getVariants(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $this->addLog($storeId, 'reviews');
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        return $this->review->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->variants->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 
     /**
@@ -235,22 +197,20 @@ class Repository implements RepositoryInterface
      */
     public function getReview(int $entityId): array
     {
-        $this->addLog(0, 'review_id');
         return $this->review->execute(0, ['entity_id' => $entityId, 'filter' => []]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getCategories(int $storeId): array
+    public function getReviews(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $this->addLog($storeId, 'categories');
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        return $this->category->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->review->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 
     /**
@@ -258,22 +218,20 @@ class Repository implements RepositoryInterface
      */
     public function getCategory(int $storeId, int $entityId = null): array
     {
-        $this->addLog($storeId, 'category_single');
         return $this->category->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getOrders(int $storeId): array
+    public function getCategories(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        $this->addLog($storeId, 'orders');
-        return $this->order->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->category->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 
     /**
@@ -281,22 +239,20 @@ class Repository implements RepositoryInterface
      */
     public function getOrder(int $entityId): array
     {
-        $this->addLog(0, 'single_orders');
         return $this->order->execute(0, ['entity_id' => $entityId, 'filter' => null]);
     }
 
     /**
      * @inheritDoc
      */
-    public function getCarts(int $storeId): array
+    public function getOrders(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $this->addLog($storeId, 'carts');
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
-        return $this->cart->execute($storeId, ['entity_id' => null, 'filter' => $filter]);
+        return $this->order->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 
     /**
@@ -304,29 +260,19 @@ class Repository implements RepositoryInterface
      */
     public function getCart(int $entityId): array
     {
-        $this->addLog(0, 'single_cart');
         return $this->cart->execute(0, ['entity_id' => $entityId]);
-    }
-
-    private function addLog($storeId, $type)
-    {
-        $requestLog = $this->requestLogRepository->create()
-            ->setStoreId($storeId)
-            ->setType($type);
-        try {
-            $this->requestLogRepository->save($requestLog);
-        } catch (\Exception $exception) {
-            $this->logRepository->addErrorLog('Request log', $exception->getMessage());
-        }
     }
 
     /**
      * @inheritDoc
      */
-    public function getProductsDelta(int $storeId): array
+    public function getCarts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
     {
-        $data = $this->product->execute($storeId, ['entity_id' => null, 'filter' => ['delta']]);
-        $this->addLog($storeId, 'products-delta');
-        return $data;
+        try {
+            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+        } catch (\Exception $exception) {
+            $filter = [];
+        }
+        return $this->cart->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
 }

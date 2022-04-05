@@ -20,6 +20,7 @@ use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
  */
 class Integration
 {
+
     public const ENDPOINT_URL = '';
     public const INTEGRATION_NAME = 'Reloadify Integration';
 
@@ -49,11 +50,10 @@ class Integration
     private $configResource;
 
     /**
-     * Integration constructor.
-     * @param IntegrationServiceInterface $integrationService
-     * @param OauthServiceInterface $oauthService
+     * @param IntegrationServiceInterface   $integrationService
+     * @param OauthServiceInterface         $oauthService
      * @param AuthorizationServiceInterface $authorizationService
-     * @param LogRepository $logRepository
+     * @param Config                        $configResource
      */
     public function __construct(
         IntegrationServiceInterface $integrationService,
@@ -71,6 +71,7 @@ class Integration
      * Create a new integration
      *
      * @param bool $update
+     *
      * @return string
      * @throws IntegrationException
      * @throws LocalizedException
@@ -88,9 +89,9 @@ class Integration
         }
 
         $integrationData = [
-            'name' => self::INTEGRATION_NAME,
-            'endpoint' => self::ENDPOINT_URL,
-            'status' => '1',
+            'name'       => self::INTEGRATION_NAME,
+            'endpoint'   => self::ENDPOINT_URL,
+            'status'     => '1',
             'setup_type' => '0',
         ];
 

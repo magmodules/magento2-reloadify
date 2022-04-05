@@ -8,14 +8,21 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Service\WebApi;
 
 use Magento\Customer\Api\CustomerRepositoryInterface as CustomerRepository;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Sales\Model\ResourceModel\Order\Collection;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
+use Magento\Sales\Model\Order as OrderModel;
 
 /**
  * Order web API service class
  */
 class Order
 {
+
+    /**
+     * Default attribute map output
+     */
     public const DEFAULT_MAP = [
         "id" => 'entity_id',
         "currency" => 'order_currency_code',
@@ -36,6 +43,10 @@ class Order
      * @var CustomerRepository
      */
     private $customerRepository;
+    /**
+     * @var CollectionProcessorInterface
+     */
+    private $collectionProcessor;
 
     /**
      * Product constructor.
@@ -44,10 +55,12 @@ class Order
      */
     public function __construct(
         CollectionFactory $orderCollectionFactory,
-        CustomerRepository $customerRepository
+        CustomerRepository $customerRepository,
+        CollectionProcessorInterface $collectionProcessor
     ) {
         $this->orderCollectionFactory = $orderCollectionFactory;
         $this->customerRepository = $customerRepository;
+        $this->collectionProcessor = $collectionProcessor;
     }
 
     /**
@@ -55,26 +68,12 @@ class Order
      * @param array $extra
      * @return array
      */
-    public function execute(int $storeId, array $extra = []): array
+    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
-        $orders = $this->orderCollectionFactory->create();
-        if ($extra['entity_id']) {
-            $orders->addFieldToFilter('entity_id', $extra['entity_id']);
-        } else {
-            $orders->addFieldToFilter('store_id', $storeId);
-            $orders = $this->applyFilter($orders, $extra['filter']);
-        }
-        /* @var \Magento\Sales\Model\Order $order*/
-        foreach ($orders as $order) {
-            $profile = null;
-            if ($order->getCustomerId()) {
-                $customer = $this->customerRepository->getById((int)$order->getCustomerId());
-                $profile = [
-                    'id' => $order->getCustomerId(),
-                    'email' => $customer->getEmail()
-                ];
-            }
+        $collection = $this->getCollection($storeId, $extra, $searchCriteria);
+
+        foreach ($collection as $order) {
             $data[] = [
                 "id" => $order->getId(),
                 "currency" => $order->getOrderCurrencyCode(),
@@ -82,7 +81,7 @@ class Order
                 "price" => $order->getGrandTotal(),
                 "paid" => ($order->getTotalPaid() == $order->getGrandTotal()),
                 "status" => $order->getStatus(),
-                "profile" => $profile,
+                "profile" => $this->getProfileData($order),
                 "products" => $this->getProducts($order),
                 "deliver_date" => $this->getDelivery($order),
                 "ordered_at" => $order->getCreatedAt(),
@@ -90,14 +89,64 @@ class Order
                 "shopping_cart_id" => $order->getQuoteId()
             ];
         }
+
         return $data;
     }
 
     /**
-     * @param \Magento\Sales\Model\Order $order
+     * @param int                          $storeId
+     * @param array                        $extra
+     * @param SearchCriteriaInterface|null $searchCriteria
+     *
+     * @return Collection
+     */
+    private function getCollection(
+        int $storeId,
+        array $extra = [],
+        SearchCriteriaInterface $searchCriteria = null
+    ): Collection {
+        $collection = $this->orderCollectionFactory->create();
+        if ($extra['entity_id']) {
+            $collection->addFieldToFilter('entity_id', $extra['entity_id']);
+        } else {
+            $collection->addFieldToFilter('store_id', $storeId);
+            $collection = $this->applyFilter($collection, $extra['filter']);
+        }
+
+        if ($searchCriteria !== null) {
+            $this->collectionProcessor->process($searchCriteria, $collection);
+        }
+
+        return $collection;
+    }
+
+    /**
+     * @param $order
+     *
+     * @return array|null
+     */
+    private function getProfileData($order): ?array
+    {
+        try {
+            if ($order->getCustomerId()) {
+                $customer = $this->customerRepository->getById((int)$order->getCustomerId());
+                return [
+                    'id' => $order->getCustomerId(),
+                    'email' => $customer->getEmail()
+                ];
+            }
+        } catch (\Exception $exception) {
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param OrderModel $order
      * @return array
      */
-    private function getProducts(\Magento\Sales\Model\Order $order)
+    private function getProducts(OrderModel $order): array
     {
         $orderedProducts = [];
         foreach ($order->getAllItems() as $item) {
@@ -114,18 +163,19 @@ class Order
             }
             $orderedProducts[] = $orderedProduct;
         }
+
         return $orderedProducts;
     }
 
     /**
-     * @param \Magento\Sales\Model\Order $order
+     * @param OrderModel $order
      * @return string
      */
-    private function getDelivery(\Magento\Sales\Model\Order $order)
+    private function getDelivery(OrderModel $order): string
     {
         $shipment = $order->getShipmentsCollection()->getFirstItem();
         if ($shipment) {
-            return $shipment->getCreatedAt();
+            return (string)$shipment->getCreatedAt();
         }
         return '';
     }
@@ -136,11 +186,12 @@ class Order
      *
      * @return Collection
      */
-    private function applyFilter(Collection $orders, array $filters)
+    private function applyFilter(Collection $orders, array $filters): Collection
     {
         foreach ($filters as $field => $filter) {
             $orders->addFieldToFilter(self::DEFAULT_MAP[$field], $filter);
         }
+
         return $orders;
     }
 }

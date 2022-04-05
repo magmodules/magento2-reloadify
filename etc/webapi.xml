@@ -5,8 +5,10 @@
  * See COPYING.txt for license details.
  */
 -->
-<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
 
+    <!-- Language Endpoints -->
     <route url="/V1/reloadify/languages" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getLanguages"/>
         <resources>
@@ -20,6 +22,7 @@
         </resources>
     </route>
 
+    <!-- Profile Endpoints -->
     <route url="/V1/reloadify/language/:store_id/profiles" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProfiles"/>
         <resources>
@@ -33,6 +36,7 @@
         </resources>
     </route>
 
+    <!-- Products Endpoints -->
     <route url="/V1/reloadify/language/:store_id/products" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProducts"/>
         <resources>
@@ -52,6 +56,7 @@
         </resources>
     </route>
 
+    <!-- Variants Endpoints -->
     <route url="/V1/reloadify/language/:store_id/variants" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getVariants"/>
         <resources>
@@ -65,7 +70,8 @@
         </resources>
     </route>
 
-    <route url="/V1/reloadify/language/:store_id/reviews/" method="GET">
+    <!-- Reviews Endpoints -->
+    <route url="/V1/reloadify/language/:store_id/reviews" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getReviews"/>
         <resources>
             <resource ref="Magmodules_Reloadify::webapi"/>
@@ -78,6 +84,7 @@
         </resources>
     </route>
 
+    <!-- Categories Endpoints -->
     <route url="/V1/reloadify/language/:store_id/categories" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCategories"/>
         <resources>
@@ -91,6 +98,7 @@
         </resources>
     </route>
 
+    <!-- Orders Endpoints -->
     <route url="/V1/reloadify/language/:store_id/orders" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getOrders"/>
         <resources>
@@ -104,6 +112,7 @@
         </resources>
     </route>
 
+    <!-- Carts Endpoints -->
     <route url="/V1/reloadify/language/:store_id/carts" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getCarts"/>
         <resources>
