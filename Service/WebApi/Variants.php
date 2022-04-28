@@ -101,6 +101,7 @@ class Variants
         $ean = $this->configRepository->getEan($storeId);
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
+        $brand = $this->configRepository->getBrand($storeId);
 
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -112,15 +113,16 @@ class Variants
             }
             $data[] = [
                 "id"           => $product->getId(),
-                "title"        => ($name) ? $product->getData($name) : '',
+                "title"        => $this->getAttributeValue($product, $name),
                 "article_code" => $product->getSku(),
-                "ean"          => ($ean) ? $product->getData($ean) : '',
+                "ean"          => $this->getAttributeValue($product, $ean),
                 "main_image"   => $this->getMainImage($product),
                 "price_cost"   => $product->getCost(),
                 "price_excl"   => $product->getPrice(),
                 "price_incl"   => $product->getPrice(),
                 "unit_price"   => $product->getPrice(),
-                "sku"          => ($sku) ? $product->getData($sku) : '',
+                "sku"          => $this->getAttributeValue($product, $sku),
+                "brand"        => $this->getAttributeValue($product, $brand),
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
                 "product_id"   => $productIds[$product->getId()],
                 "created_at"   => $product->getCreatedAt(),
@@ -128,6 +130,24 @@ class Variants
             ];
         }
         return $data;
+    }
+
+    /**
+     * @param $product
+     * @param $attribute
+     * @return mixed|string
+     */
+    private function getAttributeValue($product, $attribute)
+    {
+        $value = '';
+        if ($attribute) {
+            if ($dropdownValue = $product->getAttributeText($attribute)) {
+                $value = $dropdownValue;
+            } else {
+                $value = $product->getData($attribute);
+            }
+        }
+        return $value;
     }
 
     /**

@@ -31,5 +31,12 @@
             <config_path>magmodules_reloadify/attributes/sku</config_path>
             <comment>Select the attribute associate with the product SKU. Suggested field: SKU</comment>
         </field>
+        <field id="brand" translate="label comment" type="select" sortOrder="70" showInDefault="1"
+               showInWebsite="1" showInStore="1">
+            <label>Brand</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Attributes</source_model>
+            <config_path>magmodules_reloadify/attributes/brand</config_path>
+            <comment>Select the attribute associate with the product brand. Suggested field: Manufacturer</comment>
+        </field>
     </group>
 </include>

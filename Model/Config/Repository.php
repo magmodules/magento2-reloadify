@@ -220,4 +220,17 @@ class Repository implements ConfigRepositoryInterface
             $scope
         );
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getBrand(int $storeId = null): string
+    {
+        $scope = $scope ?? ScopeInterface::SCOPE_STORE;
+        return (string)$this->getStoreValue(
+            self::XML_PATH_BRAND,
+            $storeId,
+            $scope
+        );
+    }
 }
