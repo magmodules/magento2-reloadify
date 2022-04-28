@@ -101,6 +101,7 @@ class Variants
         $ean = $this->configRepository->getEan($storeId);
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
+        $brand = $this->configRepository->getBrand($storeId);
 
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -121,6 +122,7 @@ class Variants
                 "price_incl"   => $product->getPrice(),
                 "unit_price"   => $product->getPrice(),
                 "sku"          => ($sku) ? $product->getData($sku) : '',
+                "brand"        => ($brand) ? $product->getData($brand) : '',
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
                 "product_id"   => $productIds[$product->getId()],
                 "created_at"   => $product->getCreatedAt(),

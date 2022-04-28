@@ -26,6 +26,7 @@ interface RepositoryInterface
     public const XML_PATH_EAN = '%s/attributes/ean';
     public const XML_PATH_NAME = '%s/attributes/name';
     public const XML_PATH_SKU = '%s/attributes/sku';
+    public const XML_PATH_BRAND = '%s/attributes/brand';
 
     /**
      * Get extension version
@@ -92,6 +93,15 @@ interface RepositoryInterface
      * @return string
      */
     public function getSku(int $storeId = null): string;
+
+    /**
+     * Get brand attribute
+     *
+     * @param int|null $storeId
+     *
+     * @return string
+     */
+    public function getBrand(int $storeId = null): string;
 
     /**
      * Get current store
