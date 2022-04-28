@@ -98,15 +98,21 @@ class Product
     {
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
+        $ean = $this->configRepository->getEan($storeId);
         $name = $this->configRepository->getName($storeId);
+        $sku = $this->configRepository->getSku($storeId);
+        $brand = $this->configRepository->getBrand($storeId);
 
         foreach ($collection as $product) {
             $data[] = [
                 "id"                   => $product->getId(),
-                "name"                 => ($name) ? $product->getData($name) : '',
+                "name"                 => $this->getAttributeValue($product, $name),
+                "ean"                  => $this->getAttributeValue($product, $ean),
                 "short_description"    => $product->getShortDescription(),
                 "price"                => $product->getPrice(),
                 "url"                  => $product->getProductUrl(),
+                "sku"                  => $this->getAttributeValue($product, $sku),
+                "brand"                => $this->getAttributeValue($product, $brand),
                 "main_image"           => $this->getMainImage($product),
                 "visible"              => (bool)((int)$product->getVisibility() - 1),
                 "variant_ids"          => $this->getVariants($product),
@@ -119,6 +125,24 @@ class Product
         }
 
         return $data;
+    }
+
+    /**
+     * @param $product
+     * @param $attribute
+     * @return mixed|string
+     */
+    private function getAttributeValue($product, $attribute)
+    {
+        $value = '';
+        if ($attribute) {
+            if ($dropdownValue = $product->getAttributeText($attribute)) {
+                $value = $dropdownValue;
+            } else {
+                $value = $product->getData($attribute);
+            }
+        }
+        return $value;
     }
 
     /**
