@@ -29,8 +29,7 @@ class Review
         "name"       => 'title',
         "product_id" => 'entity_pk_value',
         "profile_id" => 'customer_id',
-        "created_at" => 'created_at',
-        "updated_at" => 'created_at'
+        "created_at" => 'created_at'
     ];
 
     /**
@@ -88,8 +87,7 @@ class Review
                 "visible"    => $review->getStatusId() == 1,
                 "product_id" => $review->getEntityPkValue(),
                 "profile"    => $this->getProfileData($review),
-                "created_at" => $review->getCreatedAt(),
-                "updated_at" => $review->getCreatedAt()
+                "created_at" => $review->getCreatedAt()
             ];
         }
 
