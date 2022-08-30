@@ -21,10 +21,10 @@
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
             <config_path>magmodules_reloadify/general/enable</config_path>
         </field>
-        <field id="token" translate="label comment" type="label" sortOrder="30" showInDefault="1"
+        <field id="token" translate="label comment" type="text" sortOrder="30" showInDefault="1"
                showInWebsite="0" showInStore="0">
             <label>Access token</label>
-            <config_path>magmodules_reloadify/general/token</config_path>
+            <frontend_model>Magmodules\Reloadify\Block\Adminhtml\System\Config\AccessToken</frontend_model>
         </field>
     </group>
 </include>

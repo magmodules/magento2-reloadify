@@ -30,6 +30,7 @@ class Integration implements DataPatchInterface
     /**
      * Integration constructor.
      * @param CreateToken $createToken
+     * @param LogRepository $logRepository
      */
     public function __construct(
         CreateToken $createToken,
@@ -53,7 +54,7 @@ class Integration implements DataPatchInterface
     public function apply()
     {
         try {
-            $this->createToken->execute();
+            $this->createToken->createToken();
         } catch (\Exception $exception) {
             $this->logRepository->addErrorLog('Integration patch', $exception->getMessage());
         }
