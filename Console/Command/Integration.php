@@ -66,7 +66,7 @@ class Integration extends Command
     public function execute(InputInterface $input, OutputInterface $output)
     {
         try {
-            $token = $this->createToken->execute($this->isUpdate($input));
+            $token = $this->createToken->createToken($this->isUpdate($input));
             $output->writeln(sprintf('<info>Integration token: %s</info>', $token));
         } catch (\Exception $exception) {
             $output->writeln(sprintf('<error>%s</error>', $exception->getMessage()));
