@@ -134,12 +134,15 @@ class Order
                     'id' => $order->getCustomerId(),
                     'email' => $customer->getEmail()
                 ];
+            } else {
+                return [
+                    'id' => null,
+                    'email' => $order->getCustomerEmail()
+                ];
             }
         } catch (\Exception $exception) {
             return null;
         }
-
-        return null;
     }
 
     /**

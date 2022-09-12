@@ -183,18 +183,21 @@ class Cart
     /**
      * @param $quote
      *
-     * @return array|null
+     * @return array
      */
-    private function getProfileData($quote): ?array
+    private function getProfileData($quote): array
     {
         if ($quote->getCustomerId()) {
-            $customer = $quote->getCustomer();
             return [
                 'id'    => $quote->getCustomerId(),
-                'email' => $customer->getEmail()
+                'email' => $quote->getCustomer()->getEmail()
+            ];
+        } else {
+            return [
+                'id' => null,
+                'email' => $quote->getCustomerEmail()
             ];
         }
-        return null;
     }
 
     /**
