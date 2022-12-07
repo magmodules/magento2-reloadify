@@ -7,11 +7,13 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
-use Magento\Customer\Model\Customer;
-use Magento\Customer\Model\ResourceModel\Customer\Collection;
-use Magento\Customer\Model\ResourceModel\Customer\CollectionFactory;
-use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Customer\Api\AddressRepositoryInterface as AddressRepository;
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
+use Magento\Customer\Model\ResourceModel\Customer as CustomerResource;
+use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Newsletter\Model\Subscriber;
 use Magento\Store\Model\StoreManagerInterface;
 
@@ -25,15 +27,10 @@ class Profiles
      * Default attribute map output
      */
     public const DEFAULT_MAP = [
-        "id"     => 'entity_id',
-        "email"  => 'email',
+        "id" => 'entity_id',
+        "email" => 'email',
         "gender" => 'gender',
     ];
-
-    /**
-     * @var CollectionFactory
-     */
-    private $collectionFactory;
     /**
      * @var Subscriber
      */
@@ -43,117 +40,129 @@ class Profiles
      */
     private $storeManager;
     /**
-     * @var CollectionProcessorInterface
+     * @var CustomerRepositoryInterface
      */
-    private $collectionProcessor;
+    private $customerRepository;
+    /**
+     * @var CustomerResource
+     */
+    private $customerResource;
+    /**
+     * @var SearchCriteriaBuilder
+     */
+    private $searchCriteriaBuilder;
+    /**
+     * @var AddressRepository
+     */
+    private $addressRepository;
 
     /**
      * Profiles constructor.
      *
-     * @param CollectionFactory     $collectionFactory
-     * @param Subscriber            $subscriber
+     * @param Subscriber $subscriber
      * @param StoreManagerInterface $storeManager
+     * @param CustomerRepositoryInterface $customerRepository
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     * @param CustomerResource $customerResource
+     * @param AddressRepository $addressRepository
      */
     public function __construct(
-        CollectionFactory $collectionFactory,
         Subscriber $subscriber,
         StoreManagerInterface $storeManager,
-        CollectionProcessorInterface $collectionProcessor
+        CustomerRepositoryInterface $customerRepository,
+        SearchCriteriaBuilder $searchCriteriaBuilder,
+        CustomerResource $customerResource,
+        AddressRepository $addressRepository
     ) {
-        $this->collectionFactory = $collectionFactory;
         $this->subscriber = $subscriber;
         $this->storeManager = $storeManager;
-        $this->collectionProcessor = $collectionProcessor;
+        $this->customerRepository = $customerRepository;
+        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
+        $this->customerResource = $customerResource;
+        $this->addressRepository = $addressRepository;
     }
 
     /**
-     * @param int   $storeId
+     * @param int $storeId
      * @param array $extra
-     *
+     * @param SearchCriteriaInterface|null $searchCriteria
      * @return array
+     * @throws LocalizedException
      */
     public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
-        $collection = $this->getCollection($storeId, $extra, $searchCriteria);
-
-        /* @var Customer $customer */
-        foreach ($collection as $customer) {
+        $customers = $this->getCustomers($storeId, $extra, $searchCriteria);
+        foreach ($customers as $customer) {
             $mainData = [
-                "id"                       => $customer->getId(),
-                "email"                    => $customer->getEmail(),
-                "gender"                   => $this->getGender($customer),
-                "active"                   => true,
+                "id" => $customer->getId(),
+                "email" => $customer->getEmail(),
+                "gender" => $this->getGender($customer),
+                "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
-                "birthdate"                => $customer->getDob()
+                "birthdate" => $customer->getDob()
             ];
 
-            if ($billing = $customer->getDefaultBillingAddress()) {
+            if ($billingId = $customer->getDefaultBilling()) {
+                $billing = $this->addressRepository->getById((int)$billingId);
                 $mainData += [
-                    "city"         => $billing->getCity(),
-                    "province"     => $billing->getRegion(),
-                    "street"       => implode(',', $billing->getStreet()),
-                    "zipcode"      => $billing->getPostcode(),
+                    "city" => $billing->getCity(),
+                    "province" => $billing->getRegion()->getRegion(),
+                    "street" => implode(',', $billing->getStreet()),
+                    "zipcode" => $billing->getPostcode(),
                     "country_code" => $billing->getCountryId(),
-                    "first_name"   => $billing->getFirstname(),
-                    "middle_name"  => $billing->getMiddlename(),
-                    "last_name"    => $billing->getLastname(),
-                    "telephone"    => $billing->getTelephone()
+                    "first_name" => $billing->getFirstname(),
+                    "middle_name" => $billing->getMiddlename(),
+                    "last_name" => $billing->getLastname(),
+                    "telephone" => $billing->getTelephone()
                 ];
             }
 
             $data[] = $mainData;
         }
-
         return $data;
     }
 
     /**
-     * @param int                          $storeId
-     * @param array                        $extra
+     * @param int $storeId
+     * @param array $extra
      * @param SearchCriteriaInterface|null $searchCriteria
      *
-     * @return Collection
+     * @return CustomerInterface[]
+     * @throws LocalizedException
      */
-    private function getCollection(
+    private function getCustomers(
         int $storeId,
         array $extra = [],
         SearchCriteriaInterface $searchCriteria = null
-    ): Collection {
+    ): array {
         try {
             $websiteId = $this->storeManager->getStore($storeId)->getWebsiteId();
         } catch (\Exception $e) {
             $websiteId = null;
         }
-
-        $collection = $this->collectionFactory->create();
         if ($extra['entity_id']) {
-            $collection->addFieldToFilter('entity_id', $extra['entity_id']);
+            $this->searchCriteriaBuilder->addFilter('entity_id', $extra['entity_id']);
         } elseif ($websiteId) {
-            $collection->addFieldToFilter('website_id', $websiteId);
-            $collection = $this->applyFilter($collection, $extra['filter']);
+            foreach ($extra['filter'] as $field => $filter) {
+                $this->searchCriteriaBuilder->addFilter(self::DEFAULT_MAP[$field], $filter);
+            }
+            $this->searchCriteriaBuilder->addFilter('website_id', $websiteId);
         }
+        $extraSearchCriteria = $this->searchCriteriaBuilder->create();
 
         if ($searchCriteria !== null) {
-            $this->collectionProcessor->process($searchCriteria, $collection);
+            $searchCriteria->setFilterGroups(
+                array_merge(
+                    $searchCriteria->getFilterGroups(),
+                    $extraSearchCriteria->getFilterGroups()
+                )
+            );
+        } else {
+            $searchCriteria = $extraSearchCriteria;
         }
 
-        return $collection;
-    }
-
-    /**
-     * @param Collection $customers
-     * @param array      $filters
-     *
-     * @return Collection
-     */
-    private function applyFilter(Collection $customers, array $filters): Collection
-    {
-        foreach ($filters as $field => $filter) {
-            $customers->addFieldToFilter(self::DEFAULT_MAP[$field], $filter);
-        }
-
-        return $customers;
+        return $this->customerRepository->getList($searchCriteria)->getItems();
     }
 
     /**
@@ -163,9 +172,15 @@ class Profiles
      */
     private function getGender($customer): string
     {
-        return $customer->getGender()
-            ? (string)$customer->getAttribute('gender')->getSource()->getOptionText($customer->getData('gender'))
-            : 'Not Specified';
+        try {
+            return $customer->getGender()
+                ? (string)$this->customerResource->getAttribute('gender')
+                    ->getSource()
+                    ->getOptionText($customer->getGender())
+                : 'Not Specified';
+        } catch (\Exception $exception) {
+            return 'Not Specified';
+        }
     }
 
     /**
