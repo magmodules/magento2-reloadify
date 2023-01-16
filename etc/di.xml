@@ -75,6 +75,16 @@
             <argument name="collectionProcessor" xsi:type="object">Magento\Catalog\Model\Api\SearchCriteria\ProductCollectionProcessor</argument>
         </arguments>
     </type>
+    <type name="Magmodules\Reloadify\Service\WebApi\Variants">
+        <arguments>
+            <argument name="collectionProcessor" xsi:type="object">Magento\Catalog\Model\Api\SearchCriteria\ProductCollectionProcessor</argument>
+        </arguments>
+    </type>
+    <type name="Magmodules\Reloadify\Service\WebApi\Category">
+        <arguments>
+            <argument name="collectionProcessor" xsi:type="object">Magento\Eav\Model\Api\SearchCriteria\CollectionProcessor</argument>
+        </arguments>
+    </type>
 
     <type name="Magento\Customer\Model\AccountManagement">
         <plugin name="saveEmailQuote" type="Magmodules\Reloadify\Plugin\Customer\SaveEmail" sortOrder="1" disabled="false" />
