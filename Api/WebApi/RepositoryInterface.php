@@ -17,26 +17,26 @@ interface RepositoryInterface
 
     /**
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getLanguage(int $entityId): array;
 
     /**
-     * @return array
+     * @return mixed
      */
     public function getLanguages(): array;
 
     /**
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getProfile(int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getProfiles(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
@@ -44,93 +44,94 @@ interface RepositoryInterface
      * @param int $storeId
      * @param int $entityId
      *
-     * @return array
+     * @return mixed
      */
     public function getProduct(int $storeId, int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getProducts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getProductsDelta(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
      * @param int $storeId
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getVariant(int $storeId, int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getVariants(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getReview(int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getReviews(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
      * @param int $storeId
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getCategory(int $storeId, int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getCategories(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getOrder(int $entityId): array;
 
     /**
-     * @param int                          $storeId
-     * @param SearchCriteriaInterface|null $searchCriteria
+     * @param int $storeId
+     * @param SearchCriteriaInterface $searchCriteria
      *
-     * @return array
+     * @return mixed
      */
     public function getOrders(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 
     /**
      * @param int $entityId
-     * @return array
+     * @return mixed
      */
     public function getCart(int $entityId): array;
 
     /**
      * @param int $storeId
-     * @return array
+     * @param SearchCriteriaInterface $searchCriteria
+     * @return mixed
      */
     public function getCarts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array;
 }
