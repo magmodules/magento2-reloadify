@@ -195,6 +195,9 @@ class Product
             return $products;
         }
         foreach ($filters as $field => $filter) {
+            if ($filter == 'delta') {
+                continue;
+            }
             $products->addFieldToFilter(self::DEFAULT_MAP[$field], $filter);
         }
         return $products;
