@@ -132,7 +132,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getProfiles(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getProfiles(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -153,7 +153,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getProducts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getProducts(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -166,7 +166,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getProductsDelta(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getProductsDelta(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         return $this->product->execute($storeId, ['entity_id' => null, 'filter' => ['delta']], $searchCriteria);
     }
@@ -182,7 +182,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getVariants(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getVariants(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -203,7 +203,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getReviews(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getReviews(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -224,7 +224,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getCategories(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getCategories(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -245,7 +245,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getOrders(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getOrders(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
@@ -266,7 +266,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getCarts(int $storeId, SearchCriteriaInterface $searchCriteria = null): array
+    public function getCarts(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
             $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
