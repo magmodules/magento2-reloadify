@@ -114,7 +114,8 @@ class Profiles
                     "first_name" => $billing->getFirstname(),
                     "middle_name" => $billing->getMiddlename(),
                     "last_name" => $billing->getLastname(),
-                    "telephone" => $billing->getTelephone()
+                    "telephone" => $billing->getTelephone(),
+                    "company_name" => $billing->getCompany()
                 ];
             }
 
