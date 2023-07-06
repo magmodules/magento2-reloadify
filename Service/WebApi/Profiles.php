@@ -102,6 +102,9 @@ class Profiles
             $mainData = [
                 "id" => $customer->getId(),
                 "email" => $customer->getEmail(),
+                "first_name" => $customer->getFirstname(),
+                "middle_name" => $customer->getMiddlename(),
+                "last_name" => $customer->getLastname(),
                 "gender" => $this->getGender($customer),
                 "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
