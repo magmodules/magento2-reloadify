@@ -16,6 +16,7 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Newsletter\Model\Subscriber;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Newsletter\Model\ResourceModel\Subscriber\CollectionFactory as SubscriberCollection;
 
 /**
  * Profiles web API service class
@@ -56,6 +57,8 @@ class Profiles
      */
     private $addressRepository;
 
+    private $subscriberCollection;
+
     /**
      * Profiles constructor.
      *
@@ -72,7 +75,8 @@ class Profiles
         CustomerRepositoryInterface $customerRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         CustomerResource $customerResource,
-        AddressRepository $addressRepository
+        AddressRepository $addressRepository,
+        SubscriberCollection $subscriberCollection
     ) {
         $this->subscriber = $subscriber;
         $this->storeManager = $storeManager;
@@ -80,6 +84,7 @@ class Profiles
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->customerResource = $customerResource;
         $this->addressRepository = $addressRepository;
+        $this->subscriberCollection = $subscriberCollection;
     }
 
     /**
@@ -97,6 +102,9 @@ class Profiles
             $mainData = [
                 "id" => $customer->getId(),
                 "email" => $customer->getEmail(),
+                "first_name" => $customer->getFirstname(),
+                "middle_name" => $customer->getMiddlename(),
+                "last_name" => $customer->getLastname(),
                 "gender" => $this->getGender($customer),
                 "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
@@ -121,6 +129,17 @@ class Profiles
 
             $data[] = $mainData;
         }
+
+        $subscribers = $this->subscriberCollection->create()
+            ->addFieldToFilter('customer_id', ['eq' => 0]);
+        foreach ($subscribers as $subscriber) {
+            $data[] = [
+                'id' => null,
+                'email' => $subscriber->getSubscriberEmail(),
+                'subscribed_to_newsletter' => $subscriber->getSubscriberStatus()
+            ];
+        }
+
         return $data;
     }
 

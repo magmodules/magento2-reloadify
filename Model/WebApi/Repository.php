@@ -18,6 +18,7 @@ use Magmodules\Reloadify\Service\WebApi\Order;
 use Magmodules\Reloadify\Service\WebApi\Product;
 use Magmodules\Reloadify\Service\WebApi\Profiles;
 use Magmodules\Reloadify\Service\WebApi\Review;
+use Magmodules\Reloadify\Service\WebApi\Settings;
 use Magmodules\Reloadify\Service\WebApi\Variants;
 
 /**
@@ -59,6 +60,10 @@ class Repository implements RepositoryInterface
      */
     private $variants;
     /**
+     * @var Settings
+     */
+    private $settings;
+    /**
      * @var RequestInterface
      */
     private $request;
@@ -70,16 +75,17 @@ class Repository implements RepositoryInterface
     /**
      * Repository constructor.
      *
-     * @param Category         $category
-     * @param Product          $product
-     * @param Language         $language
-     * @param Profiles         $profiles
-     * @param Order            $order
-     * @param Cart             $cart
-     * @param Review           $review
-     * @param Variants         $variants
+     * @param Category $category
+     * @param Product $product
+     * @param Language $language
+     * @param Profiles $profiles
+     * @param Order $order
+     * @param Cart $cart
+     * @param Review $review
+     * @param Variants $variants
+     * @param Settings $settings
      * @param RequestInterface $requestInterface
-     * @param Json             $json
+     * @param Json $json
      */
     public function __construct(
         Category $category,
@@ -90,6 +96,7 @@ class Repository implements RepositoryInterface
         Cart $cart,
         Review $review,
         Variants $variants,
+        Settings $settings,
         RequestInterface $requestInterface,
         Json $json
     ) {
@@ -101,8 +108,17 @@ class Repository implements RepositoryInterface
         $this->cart = $cart;
         $this->review = $review;
         $this->variants = $variants;
+        $this->settings = $settings;
         $this->request = $requestInterface;
         $this->json = $json;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSettings(): array
+    {
+        return $this->settings->execute();
     }
 
     /**
