@@ -8,6 +8,14 @@
 <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
 
+    <!-- Version Endpoints -->
+    <route url="/V1/reloadify/settings" method="GET">
+        <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getSettings"/>
+        <resources>
+            <resource ref="Magmodules_Reloadify::webapi"/>
+        </resources>
+    </route>
+
     <!-- Language Endpoints -->
     <route url="/V1/reloadify/languages" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getLanguages"/>

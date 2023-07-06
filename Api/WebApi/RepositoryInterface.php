@@ -16,6 +16,11 @@ interface RepositoryInterface
 {
 
     /**
+     * @return mixed
+     */
+    public function getSettings(): array;
+
+    /**
      * @param int $entityId
      * @return mixed
      */
