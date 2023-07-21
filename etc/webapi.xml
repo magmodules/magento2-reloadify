@@ -44,6 +44,14 @@
         </resources>
     </route>
 
+    <!-- Subscriber Endpoints -->
+    <route url="/V1/reloadify/language/:store_id/subscribers" method="GET">
+        <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getSubscribers"/>
+        <resources>
+            <resource ref="Magmodules_Reloadify::webapi"/>
+        </resources>
+    </route>
+
     <!-- Products Endpoints -->
     <route url="/V1/reloadify/language/:store_id/products" method="GET">
         <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getProducts"/>

@@ -47,6 +47,14 @@ interface RepositoryInterface
 
     /**
      * @param int $storeId
+     * @param SearchCriteriaInterface|null $searchCriteria
+     *
+     * @return mixed
+     */
+    public function getSubscribers(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array;
+
+    /**
+     * @param int $storeId
      * @param int $entityId
      *
      * @return mixed
