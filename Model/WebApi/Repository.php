@@ -17,6 +17,7 @@ use Magmodules\Reloadify\Service\WebApi\Language;
 use Magmodules\Reloadify\Service\WebApi\Order;
 use Magmodules\Reloadify\Service\WebApi\Product;
 use Magmodules\Reloadify\Service\WebApi\Profiles;
+use Magmodules\Reloadify\Service\WebApi\Subscribers;
 use Magmodules\Reloadify\Service\WebApi\Review;
 use Magmodules\Reloadify\Service\WebApi\Settings;
 use Magmodules\Reloadify\Service\WebApi\Variants;
@@ -43,6 +44,10 @@ class Repository implements RepositoryInterface
      * @var Profiles
      */
     private $profiles;
+    /**
+     * @var Subscribers
+     */
+    private $subscribers;
     /**
      * @var Order
      */
@@ -92,6 +97,7 @@ class Repository implements RepositoryInterface
         Product $product,
         Language $language,
         Profiles $profiles,
+        Subscribers $subscribers,
         Order $order,
         Cart $cart,
         Review $review,
@@ -104,6 +110,7 @@ class Repository implements RepositoryInterface
         $this->product = $product;
         $this->language = $language;
         $this->profiles = $profiles;
+        $this->subscribers = $subscribers;
         $this->order = $order;
         $this->cart = $cart;
         $this->review = $review;
@@ -156,6 +163,19 @@ class Repository implements RepositoryInterface
             $filter = [];
         }
         return $this->profiles->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSubscribers(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
+    {
+        try {
+            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+        } catch (\Exception $exception) {
+            $filter = [];
+        }
+        return $this->subscribers->execute($storeId, ['filter' => $filter], $searchCriteria);
     }
 
     /**
