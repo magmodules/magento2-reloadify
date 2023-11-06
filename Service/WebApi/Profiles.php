@@ -96,6 +96,7 @@ class Profiles
         foreach ($customers as $customer) {
             $mainData = [
                 "id" => $customer->getId(),
+                "store_id" => $customer->getStoreId(),
                 "email" => $customer->getEmail(),
                 "first_name" => $customer->getFirstname(),
                 "middle_name" => $customer->getMiddlename(),
