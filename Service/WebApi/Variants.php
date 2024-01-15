@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
-use Magento\Catalog\Helper\Image;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
@@ -15,6 +14,8 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Service\ProductData\Stock;
+use Magento\Store\Model\StoreManagerInterface;
+use Magento\Framework\UrlInterface;
 
 /**
  * Variants web API service class
@@ -43,10 +44,6 @@ class Variants
      */
     private $productsCollectionFactory;
     /**
-     * @var Image
-     */
-    private $image;
-    /**
      * @var ResourceConnection
      */
     private $resourceConnection;
@@ -62,30 +59,35 @@ class Variants
      * @var CollectionProcessorInterface
      */
     private $collectionProcessor;
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    private $mediaPath = '';
 
     /**
      * Variants constructor.
      *
      * @param ProductCollectionFactory $productsCollectionFactory
-     * @param Image                    $image
      * @param ResourceConnection       $resourceConnection
      * @param ConfigRepository         $configRepository
      * @param Stock                    $stock
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
-        Image $image,
         ResourceConnection $resourceConnection,
         ConfigRepository $configRepository,
         Stock $stock,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        StoreManagerInterface $storeManager
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
-        $this->image = $image;
         $this->resourceConnection = $resourceConnection;
         $this->configRepository = $configRepository;
         $this->stock = $stock;
         $this->collectionProcessor = $collectionProcessor;
+        $this->storeManager = $storeManager;
     }
 
     /**
@@ -102,6 +104,7 @@ class Variants
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
         $brand = $this->configRepository->getBrand($storeId);
+        $description = $this->configRepository->getDescription($storeId);
 
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -114,6 +117,7 @@ class Variants
             $data[] = [
                 "id"           => $product->getId(),
                 "title"        => $this->getAttributeValue($product, $name),
+                "description"  => $this->getAttributeValue($product, $description),
                 "article_code" => $product->getSku(),
                 "ean"          => $this->getAttributeValue($product, $ean),
                 "main_image"   => $this->getMainImage($product),
@@ -217,9 +221,11 @@ class Variants
      */
     private function getMainImage($product)
     {
-        return $this->image->init($product, 'image')
-            ->setImageFile($product->getImage())
-            ->getUrl();
+        if (!$this->mediaPath) {
+            $this->mediaPath = $this->storeManager->getStore($product->getStoreId())
+                ->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+        }
+        return $this->mediaPath . 'catalog/product' . $product->getImage();
     }
 
     /**

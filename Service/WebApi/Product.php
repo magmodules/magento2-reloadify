@@ -7,16 +7,18 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
-use Magento\Catalog\Helper\Image;
 use Magento\Catalog\Model\Product as ProductModel;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\UrlInterface;
 use Magento\Review\Model\ResourceModel\Review\CollectionFactory;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
+use Magento\Catalog\Model\Product\Visibility;
+use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * Product web API service class
@@ -43,10 +45,6 @@ class Product
      */
     private $productsCollectionFactory;
     /**
-     * @var Image
-     */
-    private $image;
-    /**
      * @var CollectionFactory
      */
     private $reviewCollectionFactory;
@@ -62,29 +60,44 @@ class Product
      * @var CollectionProcessorInterface
      */
     private $collectionProcessor;
+    /**
+     * @var Visibility
+     */
+    private $productVisibility;
+    /**
+     * @var StoreManagerInterface
+     */
+    private $storeManager;
+
+    private $mediaPath = '';
 
     /**
-     * @param ProductCollectionFactory     $productsCollectionFactory
-     * @param Image                        $image
-     * @param CollectionFactory            $reviewCollectionFactory
-     * @param RequestLogCollectionFactory  $requestLogCollectionFactory
-     * @param ConfigRepository             $configRepository
+     * Product constructor.
+     *
+     * @param ProductCollectionFactory $productsCollectionFactory
+     * @param CollectionFactory $reviewCollectionFactory
+     * @param RequestLogCollectionFactory $requestLogCollectionFactory
+     * @param ConfigRepository $configRepository
      * @param CollectionProcessorInterface $collectionProcessor
+     * @param Visibility $productVisibility
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
-        Image $image,
         CollectionFactory $reviewCollectionFactory,
         RequestLogCollectionFactory $requestLogCollectionFactory,
         ConfigRepository $configRepository,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        Visibility $productVisibility,
+        StoreManagerInterface $storeManager
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->reviewCollectionFactory = $reviewCollectionFactory;
-        $this->image = $image;
         $this->requestLogCollection = $requestLogCollectionFactory->create();
         $this->configRepository = $configRepository;
         $this->collectionProcessor = $collectionProcessor;
+        $this->productVisibility = $productVisibility;
+        $this->storeManager = $storeManager;
     }
 
     /**
@@ -102,6 +115,7 @@ class Product
         $name = $this->configRepository->getName($storeId);
         $sku = $this->configRepository->getSku($storeId);
         $brand = $this->configRepository->getBrand($storeId);
+        $description = $this->configRepository->getDescription($storeId);
 
         foreach ($collection as $product) {
             $data[] = [
@@ -109,6 +123,7 @@ class Product
                 "name"                 => $this->getAttributeValue($product, $name),
                 "ean"                  => $this->getAttributeValue($product, $ean),
                 "short_description"    => $product->getShortDescription(),
+                "description"          => $this->getAttributeValue($product, $description),
                 "price"                => $product->getPrice(),
                 "url"                  => $product->getProductUrl(),
                 "sku"                  => $this->getAttributeValue($product, $sku),
@@ -159,7 +174,8 @@ class Product
     ): Collection {
         $collection = $this->productsCollectionFactory->create()
             ->addAttributeToSelect('*')
-            ->setStore($storeId);
+            ->setStore($storeId)
+            ->setVisibility($this->productVisibility->getVisibleInSiteIds());
         if ($extra['entity_id']) {
             $collection->addFieldToFilter('entity_id', $extra['entity_id']);
         } else {
@@ -210,9 +226,11 @@ class Product
      */
     private function getMainImage($product)
     {
-        return $this->image->init($product, 'image')
-            ->setImageFile($product->getImage())
-            ->getUrl();
+        if (!$this->mediaPath) {
+            $this->mediaPath = $this->storeManager->getStore($product->getStoreId())
+                ->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
+        }
+        return $this->mediaPath . 'catalog/product' . $product->getImage();
     }
 
     /**

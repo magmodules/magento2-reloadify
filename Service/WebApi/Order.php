@@ -153,6 +153,11 @@ class Order
     {
         $orderedProducts = [];
         foreach ($order->getAllItems() as $item) {
+            //skip variants
+            if ($item->getParentItem() && $item->getParentItem()->getProductType() == 'configurable') {
+                continue;
+            }
+
             $orderedProduct = [
                 'id' => $item->getProductId(),
                 'quantity' => $item->getQtyOrdered(),
