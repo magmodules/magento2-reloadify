@@ -38,5 +38,12 @@
             <config_path>magmodules_reloadify/attributes/brand</config_path>
             <comment>Select the attribute associate with the product brand. Suggested field: Manufacturer</comment>
         </field>
+        <field id="description" translate="label comment" type="select" sortOrder="80" showInDefault="1"
+               showInWebsite="1" showInStore="1" canRestore="1">
+            <label>Description</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Attributes</source_model>
+            <config_path>magmodules_reloadify/attributes/description</config_path>
+            <comment>Select the attribute associate with the product description. Suggested field: Description</comment>
+        </field>
     </group>
 </include>

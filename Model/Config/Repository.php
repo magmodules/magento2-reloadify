@@ -219,4 +219,16 @@ class Repository implements ConfigRepositoryInterface
             ScopeInterface::SCOPE_STORE
         );
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function getDescription(int $storeId = null): string
+    {
+        return (string)$this->getStoreValue(
+            self::XML_PATH_DESCRIPTION,
+            $storeId,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
 }

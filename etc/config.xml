@@ -19,6 +19,7 @@
                 <name>name</name>
                 <sku>sku</sku>
                 <brand>manufacturer</brand>
+                <description>description</description>
             </attributes>
         </magmodules_reloadify>
     </default>
