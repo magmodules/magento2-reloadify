@@ -210,10 +210,25 @@ class Cart
         $quoteProducts = [];
         /* @var Item $item */
         foreach ($quote->getAllItems() as $item) {
-            $quoteProducts[] = [
+            //skip variants
+            if ($item->getParentItem() && $item->getParentItem()->getProductType() == 'configurable') {
+                continue;
+            }
+
+            $quoteProduct = [
                 'id'       => $item->getProductId(),
                 'quantity' => $item->getQty()
             ];
+
+            //add variant to parent data
+            if ($item->getProductType() == 'configurable') {
+                $child = $item->getChildren();
+                if (count($child) != 0) {
+                    $child = reset($child);
+                    $quoteProduct['variant_id'] = $child->getProductId();
+                }
+            }
+            $quoteProducts[] = $quoteProduct;
         }
         return $quoteProducts;
     }

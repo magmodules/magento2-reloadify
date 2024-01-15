@@ -17,6 +17,7 @@ use Magento\Review\Model\ResourceModel\Review\CollectionFactory;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
+use Magento\Catalog\Model\Product\Visibility;
 
 /**
  * Product web API service class
@@ -62,14 +63,21 @@ class Product
      * @var CollectionProcessorInterface
      */
     private $collectionProcessor;
+    /**
+     * @var Visibility
+     */
+    private $productVisibility;
 
     /**
-     * @param ProductCollectionFactory     $productsCollectionFactory
-     * @param Image                        $image
-     * @param CollectionFactory            $reviewCollectionFactory
-     * @param RequestLogCollectionFactory  $requestLogCollectionFactory
-     * @param ConfigRepository             $configRepository
+     * Product constructor.
+     *
+     * @param ProductCollectionFactory $productsCollectionFactory
+     * @param Image $image
+     * @param CollectionFactory $reviewCollectionFactory
+     * @param RequestLogCollectionFactory $requestLogCollectionFactory
+     * @param ConfigRepository $configRepository
      * @param CollectionProcessorInterface $collectionProcessor
+     * @param Visibility $productVisibility
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
@@ -77,7 +85,8 @@ class Product
         CollectionFactory $reviewCollectionFactory,
         RequestLogCollectionFactory $requestLogCollectionFactory,
         ConfigRepository $configRepository,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        Visibility $productVisibility
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->reviewCollectionFactory = $reviewCollectionFactory;
@@ -85,6 +94,7 @@ class Product
         $this->requestLogCollection = $requestLogCollectionFactory->create();
         $this->configRepository = $configRepository;
         $this->collectionProcessor = $collectionProcessor;
+        $this->productVisibility = $productVisibility;
     }
 
     /**
@@ -159,7 +169,8 @@ class Product
     ): Collection {
         $collection = $this->productsCollectionFactory->create()
             ->addAttributeToSelect('*')
-            ->setStore($storeId);
+            ->setStore($storeId)
+            ->setVisibility($this->productVisibility->getVisibleInSiteIds());
         if ($extra['entity_id']) {
             $collection->addFieldToFilter('entity_id', $extra['entity_id']);
         } else {
