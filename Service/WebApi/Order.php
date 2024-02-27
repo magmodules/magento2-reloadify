@@ -137,6 +137,9 @@ class Order
             } else {
                 return [
                     'id' => null,
+                    'customer_firstname' => $order->getCustomerFirstname(),
+                    'customer_middlename' => $order->getCustomerMiddlename(),
+                    'customer_lastname' => $order->getCustomerLastname(),
                     'email' => $order->getCustomerEmail()
                 ];
             }
