@@ -16,6 +16,7 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Newsletter\Model\Subscriber;
 use Magento\Store\Model\StoreManagerInterface;
+use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
 
 /**
  * Profiles web API service class
@@ -55,6 +56,10 @@ class Profiles
      * @var AddressRepository
      */
     private $addressRepository;
+    /**
+     * @var LogRepository
+     */
+    private $logRepository;
 
     /**
      * Profiles constructor.
@@ -72,7 +77,8 @@ class Profiles
         CustomerRepositoryInterface $customerRepository,
         SearchCriteriaBuilder $searchCriteriaBuilder,
         CustomerResource $customerResource,
-        AddressRepository $addressRepository
+        AddressRepository $addressRepository,
+        LogRepository $logRepository
     ) {
         $this->subscriber = $subscriber;
         $this->storeManager = $storeManager;
@@ -80,6 +86,7 @@ class Profiles
         $this->searchCriteriaBuilder = $searchCriteriaBuilder;
         $this->customerResource = $customerResource;
         $this->addressRepository = $addressRepository;
+        $this->logRepository = $logRepository;
     }
 
     /**
@@ -108,19 +115,23 @@ class Profiles
             ];
 
             if ($billingId = $customer->getDefaultBilling()) {
-                $billing = $this->addressRepository->getById((int)$billingId);
-                $mainData += [
-                    "city" => $billing->getCity(),
-                    "province" => $billing->getRegion()->getRegion(),
-                    "street" => implode(',', $billing->getStreet()),
-                    "zipcode" => $billing->getPostcode(),
-                    "country_code" => $billing->getCountryId(),
-                    "first_name" => $billing->getFirstname(),
-                    "middle_name" => $billing->getMiddlename(),
-                    "last_name" => $billing->getLastname(),
-                    "telephone" => $billing->getTelephone(),
-                    "company_name" => $billing->getCompany()
-                ];
+                try {
+                    $billing = $this->addressRepository->getById((int)$billingId);
+                    $mainData += [
+                        "city" => $billing->getCity(),
+                        "province" => $billing->getRegion()->getRegion(),
+                        "street" => implode(',', $billing->getStreet()),
+                        "zipcode" => $billing->getPostcode(),
+                        "country_code" => $billing->getCountryId(),
+                        "first_name" => $billing->getFirstname(),
+                        "middle_name" => $billing->getMiddlename(),
+                        "last_name" => $billing->getLastname(),
+                        "telephone" => $billing->getTelephone(),
+                        "company_name" => $billing->getCompany()
+                    ];
+                } catch (\Exception $e) {
+                    $this->logRepository->addErrorLog('get profiles', $e->getMessage());
+                }
             }
 
             $data[] = $mainData;
