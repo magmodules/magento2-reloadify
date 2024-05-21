@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Catalog\Model\Product\Type;
 use Magento\Customer\Api\CustomerRepositoryInterface as CustomerRepository;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
@@ -163,14 +164,23 @@ class Order
 
             $orderedProduct = [
                 'id' => $item->getProductId(),
+                'product_type' => $item->getProductType(),
                 'quantity' => $item->getQtyOrdered(),
             ];
+
             if ($item->getProductType() == 'configurable') {
                 $child = $item->getChildrenItems();
                 if (count($child) != 0) {
                     $child = reset($child);
                     $orderedProduct['variant_id'] = $child->getProductId();
                 }
+            }
+
+            // If it is a simple product associated with a bundle, get the parent bundle product ID
+            if ($item->getProductType() == Type::TYPE_SIMPLE &&
+                $item->getParentItem() &&
+                $item->getParentItem()->getProductType() == Type::TYPE_BUNDLE) {
+                $orderedProduct['parent_id'] = $item->getParentItem()->getProductId();
             }
             $orderedProducts[] = $orderedProduct;
         }

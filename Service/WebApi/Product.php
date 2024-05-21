@@ -19,6 +19,7 @@ use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Catalog\Model\Product\Type;
 
 /**
  * Product web API service class
@@ -121,6 +122,7 @@ class Product
             $data[] = [
                 "id"                   => $product->getId(),
                 "name"                 => $this->getAttributeValue($product, $name),
+                'product_type'         => $product->getTypeId(),
                 "ean"                  => $this->getAttributeValue($product, $ean),
                 "short_description"    => $product->getShortDescription(),
                 "description"          => $this->getAttributeValue($product, $description),
@@ -234,7 +236,7 @@ class Product
     }
 
     /**
-     * Returns simple products array for configurable product type
+     * Returns simple products array for parent product
      *
      * @param ProductModel $product
      *
@@ -243,13 +245,24 @@ class Product
     private function getVariants(ProductModel $product)
     {
         $ids = [];
-        if ($product->getTypeId() == 'configurable') {
-            $products = $product->getTypeInstance()->getUsedProducts($product);
-            $ids = [];
-            foreach ($products as $product) {
-                $ids[] = $product->getId();
+        $childProducts = null;
+        switch ($product->getTypeId()) {
+            case 'configurable':
+                $childProducts = $product->getTypeInstance()->getUsedProducts($product);
+                break;
+            case 'grouped':
+                $childProducts = $product->getTypeInstance()->getAssociatedProducts($product);
+                break;
+        }
+
+        if ($childProducts) {
+            foreach ($childProducts as $childProduct) {
+                if ($childProduct->getTypeId() == 'simple') {
+                    $ids[] = $childProduct->getId();
+                }
             }
         }
+
         return $ids;
     }
 
