@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Catalog\Model\Product\Type;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
@@ -217,6 +218,7 @@ class Cart
 
             $quoteProduct = [
                 'id'       => $item->getProductId(),
+                'product_type' => $item->getProductType(),
                 'quantity' => $item->getQty()
             ];
 
@@ -228,6 +230,14 @@ class Cart
                     $quoteProduct['variant_id'] = $child->getProductId();
                 }
             }
+
+            // If it is a simple product associated with a bundle, get the parent bundle product ID
+            if ($item->getProductType() == Type::TYPE_SIMPLE &&
+                $item->getParentItem() &&
+                $item->getParentItem()->getProductType() == Type::TYPE_BUNDLE) {
+                $quoteProduct['parent_id'] = $item->getParentItem()->getProductId();
+            }
+
             $quoteProducts[] = $quoteProduct;
         }
         return $quoteProducts;

@@ -161,6 +161,7 @@ class Variants
      */
     private function getChildProducts(int $entityId = null)
     {
+        //configurable children
         $connection = $this->resourceConnection->getConnection();
         $selectProducts = $connection->select()->from(
             $this->resourceConnection->getTableName('catalog_product_super_link'),
@@ -169,7 +170,35 @@ class Variants
         if ($entityId) {
             $selectProducts->where('product_id = ?', $entityId);
         }
-        return $connection->fetchPairs($selectProducts);
+        $configurable = $connection->fetchPairs($selectProducts);
+
+        //grouped children
+        $selectProducts = $connection->select()->from(
+            $this->resourceConnection->getTableName('catalog_product_link'),
+            ['linked_product_id', 'product_id']
+        )->where('link_type_id = 3');
+        if ($entityId) {
+            $selectProducts->where('linked_product_id = ?', $entityId);
+        }
+        $grouped = $connection->fetchPairs($selectProducts);
+
+        //bundle children
+        $selectProducts = $connection->select()->from(
+            ['r' => $this->resourceConnection->getTableName('catalog_product_relation')],
+            ['child_id', 'parent_id']
+        )->joinLeft(
+            ['e' => $this->resourceConnection->getTableName('catalog_product_entity')],
+            'r.parent_id = e.entity_id',
+            []
+        )->where(
+            'e.type_id = "bundle"'
+        );
+        if ($entityId) {
+            $selectProducts->where('r.child_id = ?', $entityId);
+        }
+        $bundle = $connection->fetchPairs($selectProducts);
+
+        return $configurable + $grouped + $bundle;
     }
 
     /**
@@ -188,7 +217,6 @@ class Variants
         $collection = $this->productsCollectionFactory->create()
             ->addAttributeToSelect('*')
             ->addFieldToFilter('entity_id', ['in' => array_keys($productIds)])
-            ->addPriceData()
             ->setStore($storeId);
 
         $collection = $this->applyFilter($collection, $extra['filter']);
