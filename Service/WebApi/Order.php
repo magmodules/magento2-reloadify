@@ -11,6 +11,8 @@ use Magento\Catalog\Model\Product\Type;
 use Magento\Customer\Api\CustomerRepositoryInterface as CustomerRepository;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\App\ResourceConnection;
+use Magento\GroupedProduct\Model\ResourceModel\Product\Link;
 use Magento\Sales\Model\ResourceModel\Order\Collection;
 use Magento\Sales\Model\ResourceModel\Order\CollectionFactory;
 use Magento\Sales\Model\Order as OrderModel;
@@ -48,20 +50,28 @@ class Order
      * @var CollectionProcessorInterface
      */
     private $collectionProcessor;
+    /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
 
     /**
-     * Product constructor.
+     * Order constructor.
      * @param CollectionFactory $orderCollectionFactory
      * @param CustomerRepository $customerRepository
+     * @param CollectionProcessorInterface $collectionProcessor
+     * @param ResourceConnection $resourceConnection
      */
     public function __construct(
         CollectionFactory $orderCollectionFactory,
         CustomerRepository $customerRepository,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        ResourceConnection $resourceConnection
     ) {
         $this->orderCollectionFactory = $orderCollectionFactory;
         $this->customerRepository = $customerRepository;
         $this->collectionProcessor = $collectionProcessor;
+        $this->resourceConnection = $resourceConnection;
     }
 
     /**
@@ -182,6 +192,23 @@ class Order
                 $item->getParentItem()->getProductType() == Type::TYPE_BUNDLE) {
                 $orderedProduct['parent_id'] = $item->getParentItem()->getProductId();
             }
+
+            if ($item->getProductType() == 'grouped') {
+                $connection = $this->resourceConnection->getConnection();
+                $parentProduct = $connection->select()->from(
+                    $this->resourceConnection->getTableName('catalog_product_link'),
+                    ['product_id']
+                )->where(
+                    'link_type_id = ?',
+                    Link::LINK_TYPE_GROUPED
+                )->where(
+                    'linked_product_id = ?',
+                    $item->getProductId()
+                );
+                $orderedProduct['id'] = $connection->fetchOne($parentProduct);
+                $orderedProduct['variant_id'] = $item->getProductId();
+            }
+
             $orderedProducts[] = $orderedProduct;
         }
 
