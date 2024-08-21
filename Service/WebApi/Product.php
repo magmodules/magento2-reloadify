@@ -10,6 +10,8 @@ namespace Magmodules\Reloadify\Service\WebApi;
 use Magento\Catalog\Model\Product as ProductModel;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
+use Magento\Catalog\Api\Data\ProductAttributeInterface;
+use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\UrlInterface;
@@ -19,7 +21,6 @@ use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Store\Model\StoreManagerInterface;
-use Magento\Catalog\Model\Product\Type;
 
 /**
  * Product web API service class
@@ -69,6 +70,10 @@ class Product
      * @var StoreManagerInterface
      */
     private $storeManager;
+    /**
+     * @var AttributeRepositoryInterface
+     */
+    private $attributeRepository;
 
     private $mediaPath = '';
 
@@ -90,7 +95,8 @@ class Product
         ConfigRepository $configRepository,
         CollectionProcessorInterface $collectionProcessor,
         Visibility $productVisibility,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        AttributeRepositoryInterface $attributeRepository
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->reviewCollectionFactory = $reviewCollectionFactory;
@@ -99,6 +105,7 @@ class Product
         $this->collectionProcessor = $collectionProcessor;
         $this->productVisibility = $productVisibility;
         $this->storeManager = $storeManager;
+        $this->attributeRepository = $attributeRepository;
     }
 
     /**
@@ -113,23 +120,33 @@ class Product
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
         $ean = $this->configRepository->getEan($storeId);
+        $eanType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $ean)
+            ->getFrontendInput();
         $name = $this->configRepository->getName($storeId);
+        $nameType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $name)
+            ->getFrontendInput();
         $sku = $this->configRepository->getSku($storeId);
+        $skuType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $sku)
+            ->getFrontendInput();
         $brand = $this->configRepository->getBrand($storeId);
+        $brandType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $brand)
+            ->getFrontendInput();
         $description = $this->configRepository->getDescription($storeId);
+        $descriptionType = $this->attributeRepository
+            ->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $description)->getFrontendInput();
 
         foreach ($collection as $product) {
             $data[] = [
                 "id"                   => $product->getId(),
-                "name"                 => $this->getAttributeValue($product, $name),
+                "name"                 => $this->getAttributeValue($product, $name, $nameType),
                 'product_type'         => $product->getTypeId(),
-                "ean"                  => $this->getAttributeValue($product, $ean),
+                "ean"                  => $this->getAttributeValue($product, $ean, $eanType),
                 "short_description"    => $product->getShortDescription(),
-                "description"          => $this->getAttributeValue($product, $description),
+                "description"          => $this->getAttributeValue($product, $description, $descriptionType),
                 "price"                => $product->getPrice(),
                 "url"                  => $product->getProductUrl(),
-                "sku"                  => $this->getAttributeValue($product, $sku),
-                "brand"                => $this->getAttributeValue($product, $brand),
+                "sku"                  => $this->getAttributeValue($product, $sku, $skuType),
+                "brand"                => $this->getAttributeValue($product, $brand, $brandType),
                 "main_image"           => $this->getMainImage($product),
                 "visible"              => (bool)((int)$product->getVisibility() - 1),
                 "variant_ids"          => $this->getVariants($product),
@@ -149,12 +166,12 @@ class Product
      * @param $attribute
      * @return mixed|string
      */
-    private function getAttributeValue($product, $attribute)
+    private function getAttributeValue($product, $attribute, $type)
     {
         $value = '';
-        if ($attribute) {
-            if ($dropdownValue = $product->getAttributeText($attribute)) {
-                $value = $dropdownValue;
+        if ($attribute && $type) {
+            if (($type == 'select') || ($type == 'multiselect')) {
+                $value = $product->getAttributeText($attribute);
             } else {
                 $value = $product->getData($attribute);
             }
