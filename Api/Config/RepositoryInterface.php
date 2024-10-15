@@ -28,6 +28,7 @@ interface RepositoryInterface
     public const XML_PATH_SKU = '%s/attributes/sku';
     public const XML_PATH_BRAND = '%s/attributes/brand';
     public const XML_PATH_DESCRIPTION = '%s/attributes/description';
+    public const XPATH_EXTRA_FIELDS = '%s/attributes/extra_fields';
 
     /**
      * Get extension version
@@ -112,6 +113,13 @@ interface RepositoryInterface
      * @return string
      */
     public function getDescription(int $storeId = null): string;
+
+    /**
+     * Get extra fields
+     *
+     * @return array
+     */
+    public function getExtraFields(): array;
 
     /**
      * Get current store

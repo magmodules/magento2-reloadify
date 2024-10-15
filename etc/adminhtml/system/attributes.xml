@@ -45,5 +45,11 @@
             <config_path>magmodules_reloadify/attributes/description</config_path>
             <comment>Select the attribute associate with the product description. Suggested field: Description</comment>
         </field>
+        <field id="extra_fields" translate="label" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Extra Fields</label>
+            <frontend_model>Magmodules\Reloadify\Block\Adminhtml\System\Config\Form\Field\ExtraFields</frontend_model>
+            <backend_model>Magmodules\Reloadify\Model\Config\Backend\Serialized\ExtraFields</backend_model>
+            <config_path>magmodules_reloadify/attributes/extra_fields</config_path>
+        </field>
     </group>
 </include>
