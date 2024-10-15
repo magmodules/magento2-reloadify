@@ -182,21 +182,27 @@ class Cart
     }
 
     /**
-     * @param $quote
+     * @param Quote $quote
      *
      * @return array
      */
-    private function getProfileData($quote): array
+    private function getProfileData(Quote $quote): array
     {
         if ($quote->getCustomerId()) {
             return [
                 'id'    => $quote->getCustomerId(),
-                'email' => $quote->getCustomer()->getEmail()
+                'email' => $quote->getCustomer()->getEmail(),
+                'first_name' => $quote->getCustomer()->getFirstname(),
+                'middle_name' => $quote->getCustomer()->getMiddlename(),
+                'last_name' => $quote->getCustomer()->getLastname()
             ];
         } else {
             return [
                 'id' => null,
-                'email' => $quote->getCustomerEmail()
+                'email' => $quote->getCustomerEmail(),
+                'first_name' => $quote->getShippingAddress()->getFirstname(),
+                'middle_name' => $quote->getShippingAddress()->getMiddlename(),
+                'last_name' => $quote->getShippingAddress()->getLastname()
             ];
         }
     }
