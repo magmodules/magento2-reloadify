@@ -17,6 +17,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Newsletter\Model\Subscriber;
 use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
+use Magento\Customer\Model\ResourceModel\Group\CollectionFactory as GroupCollectionFactory;
 
 /**
  * Profiles web API service class
@@ -61,6 +62,8 @@ class Profiles
      */
     private $logRepository;
 
+    private $groupCollectionFactory;
+
     /**
      * Profiles constructor.
      *
@@ -78,7 +81,8 @@ class Profiles
         SearchCriteriaBuilder $searchCriteriaBuilder,
         CustomerResource $customerResource,
         AddressRepository $addressRepository,
-        LogRepository $logRepository
+        LogRepository $logRepository,
+        GroupCollectionFactory $groupCollectionFactory
     ) {
         $this->subscriber = $subscriber;
         $this->storeManager = $storeManager;
@@ -87,6 +91,7 @@ class Profiles
         $this->customerResource = $customerResource;
         $this->addressRepository = $addressRepository;
         $this->logRepository = $logRepository;
+        $this->groupCollectionFactory = $groupCollectionFactory;
     }
 
     /**
@@ -100,6 +105,7 @@ class Profiles
     {
         $data = [];
         $customers = $this->getCustomers($storeId, $extra, $searchCriteria);
+        $customerGroups = $this->getCustomersGroups();
         foreach ($customers as $customer) {
             $mainData = [
                 "id" => $customer->getId(),
@@ -111,7 +117,8 @@ class Profiles
                 "gender" => $this->getGender($customer),
                 "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
-                "birthdate" => $customer->getDob()
+                "birthdate" => $customer->getDob(),
+                "customer_group" => $customerGroups[$customer->getGroupId()] ?? ''
             ];
 
             if ($billingId = $customer->getDefaultBilling()) {
@@ -209,5 +216,20 @@ class Profiles
     {
         $subscription = $this->subscriber->loadByCustomerId($customer->getId());
         return $subscription->isSubscribed();
+    }
+
+    /**
+     * Get all customer groups as array ['group_id' => 'code']
+     *
+     * @return array
+     */
+    private function getCustomersGroups(): array
+    {
+        $customerGroups = [];
+        $groupCollection = $this->groupCollectionFactory->create();
+        foreach ($groupCollection as $group) {
+            $customerGroups[$group->getId()] = $group->getCustomerGroupCode();
+        }
+        return $customerGroups;
     }
 }
