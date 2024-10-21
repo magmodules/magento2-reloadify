@@ -120,23 +120,28 @@ class Product
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
         $ean = $this->configRepository->getEan($storeId);
-        $eanType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $ean)
-            ->getFrontendInput();
+        $eanType = $this->getAttributeType($ean);
+
         $name = $this->configRepository->getName($storeId);
-        $nameType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $name)
-            ->getFrontendInput();
+        $nameType = $this->getAttributeType($name);
+
         $sku = $this->configRepository->getSku($storeId);
-        $skuType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $sku)
-            ->getFrontendInput();
+        $skuType = $this->getAttributeType($sku);
+
         $brand = $this->configRepository->getBrand($storeId);
-        $brandType = $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $brand)
-            ->getFrontendInput();
+        $brandType = $this->getAttributeType($brand);
+
         $description = $this->configRepository->getDescription($storeId);
-        $descriptionType = $this->attributeRepository
-            ->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $description)->getFrontendInput();
+        $descriptionType = $this->getAttributeType($description);
+
+        $extraFields = $this->configRepository->getExtraFields();
+        foreach ($extraFields as $key => $extraAttribute) {
+            $extraAttributeType = $this->getAttributeType($extraAttribute['source']);
+            $extraFields[$key]['type'] = $extraAttributeType;
+        }
 
         foreach ($collection as $product) {
-            $data[] = [
+            $productData = [
                 "id"                   => $product->getId(),
                 "name"                 => $this->getAttributeValue($product, $name, $nameType),
                 'product_type'         => $product->getTypeId(),
@@ -156,6 +161,14 @@ class Product
                 "created_at"           => $product->getCreatedAt(),
                 "updated_at"           => $product->getUpdatedAt()
             ];
+            foreach ($extraFields as $extraField) {
+                $productData[$extraField['label']] = $this->getAttributeValue(
+                    $product,
+                    $extraField['source'],
+                    $extraField['type']
+                );
+            }
+            $data[] = $productData;
         }
 
         return $data;
@@ -296,5 +309,19 @@ class Product
             ->addEntityFilter('product', $product->getId())
             ->setDateOrder()
             ->getColumnValues('review_id');
+    }
+
+    /**
+     * @param $attribute
+     * @return string
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    private function getAttributeType($attribute): string
+    {
+        if ($attribute == 'entity_id') {
+            return 'text';
+        }
+        return $this->attributeRepository->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $attribute)
+            ->getFrontendInput();
     }
 }

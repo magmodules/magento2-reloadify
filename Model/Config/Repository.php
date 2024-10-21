@@ -10,6 +10,7 @@ namespace Magmodules\Reloadify\Model\Config;
 use Exception;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -37,6 +38,11 @@ class Repository implements ConfigRepositoryInterface
     private $metadata;
 
     /**
+     * @var Json
+     */
+    private $serializer;
+
+    /**
      * Repository constructor.
      *
      * @param StoreManagerInterface $storeManager
@@ -46,11 +52,13 @@ class Repository implements ConfigRepositoryInterface
     public function __construct(
         StoreManagerInterface $storeManager,
         ScopeConfigInterface $scopeConfig,
-        ProductMetadataInterface $metadata
+        ProductMetadataInterface $metadata,
+        Json $serializer
     ) {
         $this->storeManager = $storeManager;
         $this->scopeConfig = $scopeConfig;
         $this->metadata = $metadata;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -230,5 +238,61 @@ class Repository implements ConfigRepositoryInterface
             $storeId,
             ScopeInterface::SCOPE_STORE
         );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getExtraFields(): array
+    {
+        $extraFields = [];
+        if ($attributes = $this->getStoreValueArray(self::XPATH_EXTRA_FIELDS)) {
+            foreach ($attributes as $attribute) {
+                $label = 'eav_' . strtolower(str_replace(' ', '_', $attribute['name']));
+                if (preg_match('/^rendered_price__/', $attribute['attribute'])) {
+                    $extraFields['rendered_price__' . $label] = [
+                        'label'  => $label,
+                        'price_source' => explode('__', $attribute['attribute'])[1],
+                        'actions' => !empty($attribute['actions']) ? [$attribute['actions']] : null,
+                    ];
+                } else {
+                    $extraFields[$label] = [
+                        'label'  => $label,
+                        'source' => $attribute['attribute'],
+                        'actions' => !empty($attribute['actions']) ? [$attribute['actions']] : null,
+                    ];
+                }
+            }
+        }
+
+        return $extraFields;
+    }
+
+    /**
+     * Get Configuration Array data.
+     *
+     * @param      $path
+     * @param null $storeId
+     * @param null $scope
+     *
+     * @return array
+     */
+    public function getStoreValueArray($path, $storeId = null, $scope = null)
+    {
+        $value = $this->getStoreValue($path, $storeId, $scope);
+        return $this->getValueArray($value);
+    }
+
+    /**
+     * @param $value
+     *
+     * @return array
+     */
+    public function getValueArray($value)
+    {
+        if (empty($value)) {
+            return [];
+        }
+        return $this->serializer->unserialize($value);
     }
 }
