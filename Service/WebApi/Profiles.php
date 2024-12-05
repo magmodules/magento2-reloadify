@@ -118,7 +118,7 @@ class Profiles
                 "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
                 "birthdate" => $customer->getDob(),
-                "customer_group" => $customerGroups[$customer->getGroupId()] ?? ''
+                "eav_customer_group" => $customerGroups[$customer->getGroupId()] ?? ''
             ];
 
             if ($billingId = $customer->getDefaultBilling()) {
