@@ -125,6 +125,7 @@ class Variants
                 "price_excl"   => $product->getPrice(),
                 "price_incl"   => $product->getPrice(),
                 "unit_price"   => $product->getPrice(),
+                "special_price" => $product->getSpecialPrice(),
                 "sku"          => $this->getAttributeValue($product, $sku),
                 "brand"        => $this->getAttributeValue($product, $brand),
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),

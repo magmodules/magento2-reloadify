@@ -136,7 +136,7 @@ class Order
      *
      * @return array|null
      */
-    private function getProfileData($order): ?array
+    private function getProfileData(OrderModel $order): ?array
     {
         try {
             if ($order->getCustomerId()) {
@@ -146,13 +146,24 @@ class Order
                     'email' => $customer->getEmail()
                 ];
             } else {
-                return [
+                $data = [
                     'id' => null,
                     'customer_firstname' => $order->getCustomerFirstname(),
                     'customer_middlename' => $order->getCustomerMiddlename(),
                     'customer_lastname' => $order->getCustomerLastname(),
                     'email' => $order->getCustomerEmail()
                 ];
+                if ($shipAddress = $order->getShippingAddress()) {
+                    $data['region_id'] = $shipAddress->getRegionId();
+                    $data['region'] = $shipAddress->getRegion();
+                    $data['postcode'] = $shipAddress->getPostcode();
+                    $data['street'] = $shipAddress->getStreet();
+                    $data['city'] = $shipAddress->getCity();
+                    $data['telephone'] = $shipAddress->getTelephone();
+                    $data['country_id'] = $shipAddress->getCountryId();
+                    $data['company'] = $shipAddress->getCompany();
+                }
+                return $data;
             }
         } catch (\Exception $exception) {
             return null;

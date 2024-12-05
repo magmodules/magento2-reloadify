@@ -252,17 +252,47 @@ class Product
     }
 
     /**
-     * @param $product
+     * Get the main image URL for a product.
      *
-     * @return string
+     * @param \Magento\Catalog\Model\Product $product The product instance.
+     * @return string The full URL of the product's main image, or an empty string if no image exists.
      */
-    private function getMainImage($product)
+    private function getMainImage($product): string
+    {
+        if ($image = $product->getImage()) {
+            return $this->getMediaBaseUrl($product->getStoreId())
+                . 'catalog/product'
+                . $this->normalizeImagePath($image);
+        }
+
+        return '';
+    }
+
+    /**
+     * Retrieve the base URL for media files for a specific store.
+     *
+     * @param int $storeId The store ID.
+     * @return string The base media URL for the store.
+     */
+    private function getMediaBaseUrl(int $storeId): string
     {
         if (!$this->mediaPath) {
-            $this->mediaPath = $this->storeManager->getStore($product->getStoreId())
+            $this->mediaPath = $this->storeManager->getStore($storeId)
                 ->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
         }
-        return $this->mediaPath . 'catalog/product' . $product->getImage();
+
+        return $this->mediaPath;
+    }
+
+    /**
+     * Normalize the image path by ensuring it starts with a forward slash.
+     *
+     * @param string $image The image path from the product.
+     * @return string The normalized image path.
+     */
+    private function normalizeImagePath(string $image): string
+    {
+        return '/' . ltrim($image, '/');
     }
 
     /**
