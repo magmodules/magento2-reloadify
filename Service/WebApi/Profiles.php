@@ -121,6 +121,11 @@ class Profiles
                 "eav_customer_group" => $customerGroups[$customer->getGroupId()] ?? ''
             ];
 
+            $customAttributes = $customer->getCustomAttributes();
+            foreach ($customAttributes as $attributeCode => $attribute) {
+                $mainData['eav_' . $attributeCode] = $attribute->getValue();
+            }
+
             if ($billingId = $customer->getDefaultBilling()) {
                 try {
                     $billing = $this->addressRepository->getById((int)$billingId);
