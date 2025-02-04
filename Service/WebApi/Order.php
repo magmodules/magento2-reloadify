@@ -85,7 +85,7 @@ class Order
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
 
         foreach ($collection as $order) {
-            $data[] = [
+            $orderData = [
                 "id" => $order->getId(),
                 "currency" => $order->getOrderCurrencyCode(),
                 "number" => $order->getIncrementId(),
@@ -99,6 +99,29 @@ class Order
                 "created_at" => $order->getCreatedAt(),
                 "shopping_cart_id" => $order->getQuoteId()
             ];
+            if ($shipAddress = $order->getShippingAddress()) {
+                $shipData = $shipAddress->getData();
+                unset($shipData['entity_id'],
+                    $shipData['parent_id'],
+                    $shipData['quote_address_id'],
+                    $shipData['customer_address_id']
+                );
+                $orderData['shipping_address'] = array_filter($shipData, function ($value) {
+                    return !is_null($value);
+                });
+            }
+            if ($billAddress = $order->getBillingAddress()) {
+                $billData = $billAddress->getData();
+                unset($billData['entity_id'],
+                    $billData['parent_id'],
+                    $billData['quote_address_id'],
+                    $billData['customer_address_id']
+                );
+                $orderData['billing_address'] = array_filter($billData, function ($value) {
+                    return !is_null($value);
+                });
+            }
+            $data[] = $orderData;
         }
 
         return $data;
