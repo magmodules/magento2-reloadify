@@ -11,6 +11,7 @@ use Magento\Customer\Api\AddressRepositoryInterface as AddressRepository;
 use Magento\Customer\Api\CustomerRepositoryInterface;
 use Magento\Customer\Api\Data\CustomerInterface;
 use Magento\Customer\Model\ResourceModel\Customer as CustomerResource;
+use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
@@ -61,8 +62,18 @@ class Profiles
      * @var LogRepository
      */
     private $logRepository;
-
+    /**
+     * @var GroupCollectionFactory
+     */
     private $groupCollectionFactory;
+    /**
+     * @var AttributeRepositoryInterface
+     */
+    private $attributeRepository;
+    /**
+     * @var array
+     */
+    private $attributeSourceMap = [];
 
     /**
      * Profiles constructor.
@@ -73,6 +84,9 @@ class Profiles
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
      * @param CustomerResource $customerResource
      * @param AddressRepository $addressRepository
+     * @param LogRepository $logRepository
+     * @param GroupCollectionFactory $groupCollectionFactory
+     * @param AttributeRepositoryInterface $attributeRepository
      */
     public function __construct(
         Subscriber $subscriber,
@@ -82,7 +96,8 @@ class Profiles
         CustomerResource $customerResource,
         AddressRepository $addressRepository,
         LogRepository $logRepository,
-        GroupCollectionFactory $groupCollectionFactory
+        GroupCollectionFactory $groupCollectionFactory,
+        AttributeRepositoryInterface $attributeRepository
     ) {
         $this->subscriber = $subscriber;
         $this->storeManager = $storeManager;
@@ -92,6 +107,7 @@ class Profiles
         $this->addressRepository = $addressRepository;
         $this->logRepository = $logRepository;
         $this->groupCollectionFactory = $groupCollectionFactory;
+        $this->attributeRepository = $attributeRepository;
     }
 
     /**
@@ -123,7 +139,8 @@ class Profiles
 
             $customAttributes = $customer->getCustomAttributes();
             foreach ($customAttributes as $attributeCode => $attribute) {
-                $mainData['eav_' . $attributeCode] = $attribute->getValue();
+                $type = $this->getAttributeType($attributeCode);
+                $mainData['eav_' . $attributeCode] = $this->getAttributeValue($attribute, $type);
             }
 
             if ($billingId = $customer->getDefaultBilling()) {
@@ -236,5 +253,68 @@ class Profiles
             $customerGroups[$group->getId()] = $group->getCustomerGroupCode();
         }
         return $customerGroups;
+    }
+
+    /**
+     * @param $attribute
+     * @return string
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    private function getAttributeType($attribute): string
+    {
+        return $this->attributeRepository->get('customer', $attribute)
+            ->getFrontendInput();
+    }
+
+    /**
+     * @param $attribute
+     * @return mixed|string
+     */
+    private function getAttributeValue($attribute, $type)
+    {
+        $value = '';
+        if (!$attribute || !$type) {
+            return $value;
+        }
+        if ($type == 'select' || $type == 'multiselect') {
+            try {
+                $attributeCode = $attribute->getAttributeCode();
+                $attributeSource = $this->getAttributeSource($attributeCode);
+                $attributeValue = $attribute->getValue();
+
+                if ($type == 'multiselect') {
+                    $value = [];
+                    $values = explode(',', $attributeValue);
+                    foreach ($values as $singleValue) {
+                        $label = $attributeSource->getOptionText($singleValue);
+                        if ($label) {
+                            $value[] = $label;
+                        }
+                    }
+                    $value = implode(', ', $value);
+                } else {
+                    $value = $attributeSource->getOptionText($attributeValue);
+                }
+            } catch (\Exception $e) {
+                $value = 'Error retrieving value';
+            }
+        } else {
+            $value = $attribute->getValue();
+        }
+        return $value;
+    }
+
+    /**
+     * @param $attributeCode
+     * @return mixed
+     * @throws \Magento\Framework\Exception\NoSuchEntityException
+     */
+    private function getAttributeSource($attributeCode)
+    {
+        if (!isset($this->attributeSourceMap[$attributeCode])) {
+            $this->attributeSourceMap[$attributeCode] =
+                $this->attributeRepository->get('customer', $attributeCode)->getSource();
+        }
+        return $this->attributeSourceMap[$attributeCode];
     }
 }
