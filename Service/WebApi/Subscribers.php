@@ -47,7 +47,7 @@ class Subscribers
      * @return array
      * @throws LocalizedException
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
         $subscribers = $this->subscriberCollection->create();

@@ -96,7 +96,7 @@ class Variants
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $productIds = $this->getChildProducts($extra['entity_id']);
         $websiteId = $this->configRepository->getStore((int)$storeId)->getWebsiteId();
@@ -160,7 +160,7 @@ class Variants
      *
      * @return array
      */
-    private function getChildProducts(int $entityId = null)
+    private function getChildProducts(?int $entityId = null)
     {
         //configurable children
         $connection = $this->resourceConnection->getConnection();
@@ -212,7 +212,7 @@ class Variants
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $productIds = $this->getChildProducts($extra['entity_id']);
         $collection = $this->productsCollectionFactory->create()

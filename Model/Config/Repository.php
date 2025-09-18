@@ -81,8 +81,8 @@ class Repository implements ConfigRepositoryInterface
      */
     private function getStoreValue(
         string $path,
-        int $storeId = null,
-        string $scope = null
+        ?int $storeId = null,
+        ?string $scope = null
     ): string {
         if (!$storeId) {
             $storeId = (int)$this->getStore()->getId();
@@ -97,7 +97,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getStore(int $storeId = null): StoreInterface
+    public function getStore(?int $storeId = null): StoreInterface
     {
         try {
             return $this->storeManager->getStore($storeId);
@@ -122,7 +122,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function isDebugMode(int $storeId = null): bool
+    public function isDebugMode(?int $storeId = null): bool
     {
         return $this->getFlag(
             self::XML_PATH_DEBUG,
@@ -140,7 +140,7 @@ class Repository implements ConfigRepositoryInterface
      *
      * @return bool
      */
-    private function getFlag(string $path, int $storeId = null, string $scope = null): bool
+    private function getFlag(string $path, ?int $storeId = null, ?string $scope = null): bool
     {
         if (!$storeId) {
             $storeId = (int)$this->getStore()->getId();
@@ -155,7 +155,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function isEnabled(int $storeId = null): bool
+    public function isEnabled(?int $storeId = null): bool
     {
         return $this->getFlag(self::XML_PATH_EXTENSION_ENABLE, $storeId);
     }
@@ -176,7 +176,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getPwaBaseUrl(int $storeId = null): string
+    public function getPwaBaseUrl(?int $storeId = null): string
     {
         return $this->getStoreValue(self::PWA_BASE_URL, $storeId);
     }
@@ -184,7 +184,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getPwaCustomUrl(int $storeId = null): string
+    public function getPwaCustomUrl(?int $storeId = null): string
     {
         return rtrim($this->getStoreValue(self::PWA_CUSTOM_URL, $storeId), '/') . '/';
     }
@@ -192,7 +192,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getBaseUrl(int $storeId = null): string
+    public function getBaseUrl(?int $storeId = null): string
     {
         if ($this->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
             return $this->getPwaCustomUrl($storeId);
@@ -204,7 +204,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function isAddStoreCodeToUrl(int $storeId = null): string
+    public function isAddStoreCodeToUrl(?int $storeId = null): string
     {
         return $this->getStoreValue(self::ADD_STORE_CODE_TO_URL, $storeId);
     }
@@ -220,7 +220,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getEan(int $storeId = null): string
+    public function getEan(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_EAN,
@@ -232,7 +232,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getName(int $storeId = null): string
+    public function getName(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_NAME,
@@ -244,7 +244,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getSku(int $storeId = null): string
+    public function getSku(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_SKU,
@@ -256,7 +256,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getBrand(int $storeId = null): string
+    public function getBrand(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_BRAND,
@@ -268,7 +268,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getDescription(int $storeId = null): string
+    public function getDescription(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_DESCRIPTION,
@@ -277,7 +277,7 @@ class Repository implements ConfigRepositoryInterface
         );
     }
 
-    public function getImageVariant(int $storeId = null): string
+    public function getImageVariant(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_IMAGE_VARIANT,
@@ -289,7 +289,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getMainImage(int $storeId = null): string
+    public function getMainImage(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_MAIN_IMAGE,
@@ -301,7 +301,7 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getExtraImage(int $storeId = null): string
+    public function getExtraImage(?int $storeId = null): string
     {
         return (string)$this->getStoreValue(
             self::XML_PATH_EXTRA_IMAGE,
@@ -366,7 +366,7 @@ class Repository implements ConfigRepositoryInterface
         return $this->serializer->unserialize($value);
     }
 
-    public function getBaseUrlStore(int $storeId = null): string
+    public function getBaseUrlStore(?int $storeId = null): string
     {
         return $this->storeManager->getStore($storeId)->getBaseUrl();
     }

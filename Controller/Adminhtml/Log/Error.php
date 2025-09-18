@@ -30,7 +30,7 @@ class Error extends Action
     /**
      * Error log file path pattern
      */
-    public const ERROR_LOG_FILE = '%s/log/reloadify/error.log';
+    public const ERROR_LOG_FILE = '%s/log/reloadify-error.log';
     /**
      * @var JsonFactory
      */

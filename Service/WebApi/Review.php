@@ -74,7 +74,7 @@ class Review
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null)
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null)
     {
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);

@@ -15,14 +15,6 @@ use Monolog\Logger;
  */
 class Error extends Base
 {
-
-    /**
-     * @var int
-     */
     protected $loggerType = Logger::ERROR;
-
-    /**
-     * @var string
-     */
-    protected $fileName = '/var/log/reloadify/error.log';
+    protected $fileName = '/var/log/reloadify-error.log';
 }

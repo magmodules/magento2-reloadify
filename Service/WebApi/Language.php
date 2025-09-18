@@ -35,7 +35,7 @@ class Language
      *
      * @return array
      */
-    public function execute(int $entityId = null): array
+    public function execute(?int $entityId = null): array
     {
         $data = [];
         $collection = $this->getCollection($entityId);

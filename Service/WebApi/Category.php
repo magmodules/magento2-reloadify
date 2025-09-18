@@ -92,7 +92,7 @@ class Category
      * @return array
      * @throws LocalizedException
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $this->appEmulation->startEnvironmentEmulation($storeId, Area::AREA_FRONTEND, true);
         $data = [];
@@ -140,7 +140,7 @@ class Category
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $collection = $this->collectionFactory->create()
             ->addAttributeToSelect('*')

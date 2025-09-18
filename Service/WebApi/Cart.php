@@ -15,7 +15,6 @@ use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item;
 use Magento\Quote\Model\ResourceModel\Quote\Collection;
 use Magento\Quote\Model\ResourceModel\Quote\CollectionFactory;
-use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 
@@ -58,14 +57,12 @@ class Cart
      * Cart constructor.
      *
      * @param CollectionFactory $quoteCollectionFactory
-     * @param StoreManagerInterface $storeManager
      * @param EncryptorInterface $encryptor
      * @param CollectionProcessorInterface $collectionProcessor
      * @param ConfigRepository $configRepository
      */
     public function __construct(
         CollectionFactory $quoteCollectionFactory,
-        StoreManagerInterface $storeManager,
         EncryptorInterface $encryptor,
         CollectionProcessorInterface $collectionProcessor,
         ConfigRepository $configRepository
@@ -83,7 +80,7 @@ class Cart
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -114,7 +111,7 @@ class Cart
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $collection = $this->quoteCollectionFactory->create();
         if ($extra['entity_id']) {
