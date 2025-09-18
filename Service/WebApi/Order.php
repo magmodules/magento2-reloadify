@@ -84,6 +84,7 @@ class Order
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
 
+        /** @var OrderModel $order */
         foreach ($collection as $order) {
             $orderData = [
                 "id" => $order->getId(),
@@ -92,6 +93,7 @@ class Order
                 "price" => $order->getGrandTotal(),
                 "paid" => ($order->getTotalPaid() == $order->getGrandTotal()),
                 "status" => $order->getStatus(),
+                "has_an_account" => (bool)$order->getCustomerId(),
                 "profile" => $this->getProfileData($order),
                 "products" => $this->getProducts($order),
                 "deliver_date" => $this->getDelivery($order),

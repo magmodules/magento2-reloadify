@@ -126,6 +126,7 @@ class Profiles
             $mainData = [
                 "id" => $customer->getId(),
                 "store_id" => $customer->getStoreId(),
+                "has_an_account" => true,
                 "email" => $customer->getEmail(),
                 "first_name" => $customer->getFirstname(),
                 "middle_name" => $customer->getMiddlename(),
