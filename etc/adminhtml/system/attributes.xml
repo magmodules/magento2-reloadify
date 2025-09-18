@@ -45,6 +45,16 @@
             <config_path>magmodules_reloadify/attributes/description</config_path>
             <comment>Select the attribute associate with the product description. Suggested field: Description</comment>
         </field>
+        <field id="main_image" translate="label" type="select" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Main Image</label>
+            <source_model>Magmodules\Reloadify\Model\System\Config\Source\Image</source_model>
+            <config_path>magmodules_reloadify/attributes/main_image</config_path>
+        </field>
+        <field id="extra_image" translate="label" type="select" sortOrder="91" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>Extra Image</label>
+            <source_model>Magmodules\Reloadify\Model\System\Config\Source\Image</source_model>
+            <config_path>magmodules_reloadify/attributes/extra_image</config_path>
+        </field>
         <field id="extra_fields" translate="label" type="select" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
             <label>Extra Fields</label>
             <frontend_model>Magmodules\Reloadify\Block\Adminhtml\System\Config\Form\Field\ExtraFields</frontend_model>

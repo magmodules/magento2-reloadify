@@ -280,6 +280,30 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
+    public function getMainImage(int $storeId = null): string
+    {
+        return (string)$this->getStoreValue(
+            self::XML_PATH_MAIN_IMAGE,
+            $storeId,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getExtraImage(int $storeId = null): string
+    {
+        return (string)$this->getStoreValue(
+            self::XML_PATH_EXTRA_IMAGE,
+            $storeId,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getExtraFields(): array
     {
         $extraFields = [];
