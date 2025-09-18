@@ -277,6 +277,15 @@ class Repository implements ConfigRepositoryInterface
         );
     }
 
+    public function getImageVariant(int $storeId = null): string
+    {
+        return (string)$this->getStoreValue(
+            self::XML_PATH_IMAGE_VARIANT,
+            $storeId,
+            ScopeInterface::SCOPE_STORE
+        );
+    }
+
     /**
      * @inheritDoc
      */

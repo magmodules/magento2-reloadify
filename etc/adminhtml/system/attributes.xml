@@ -61,5 +61,12 @@
             <backend_model>Magmodules\Reloadify\Model\Config\Backend\Serialized\ExtraFields</backend_model>
             <config_path>magmodules_reloadify/attributes/extra_fields</config_path>
         </field>
+        <field id="image" translate="label comment" type="select" sortOrder="110" showInDefault="1"
+               showInWebsite="1" showInStore="1" canRestore="1">
+            <label>Image</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\Image</source_model>
+            <config_path>magmodules_reloadify/attributes/image</config_path>
+            <comment>Select the image variant</comment>
+        </field>
     </group>
 </include>

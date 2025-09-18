@@ -20,6 +20,7 @@
                 <sku>sku</sku>
                 <brand>manufacturer</brand>
                 <description>description</description>
+                <image>image</image>
             </attributes>
             <restore_cart>
                 <url>frontend</url>

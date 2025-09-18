@@ -133,7 +133,7 @@ class Product
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -236,7 +236,7 @@ class Product
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $collection = $this->productsCollectionFactory->create()
             ->addAttributeToSelect('*')
@@ -257,11 +257,11 @@ class Product
 
     /**
      * @param Collection $products
-     * @param array      $filters
-     *
+     * @param array $filters
+     * @param int|null $storeId
      * @return Collection
      */
-    private function applyFilter(Collection $products, array $filters, int $storeId = null)
+    private function applyFilter(Collection $products, array $filters, ?int $storeId = null)
     {
         if (in_array('delta', $filters) && $this->requestLogCollection->getSize()) {
             $lastRequestDate = $this->requestLogCollection->addFieldToFilter(
@@ -309,7 +309,7 @@ class Product
         }
 
         foreach ($galleryImages as $image) {
-            if (empty($image['disabled']) || !empty($config['inc_hidden_image'])) {
+            if (empty($image['disabled'])) {
                 $images[] = $this->catalogProductMediaConfig->getMediaUrl($image['file']);
             }
         }

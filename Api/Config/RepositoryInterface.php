@@ -31,6 +31,7 @@ interface RepositoryInterface
     public const XML_PATH_MAIN_IMAGE = '%s/attributes/main_image';
     public const XML_PATH_EXTRA_IMAGE = '%s/attributes/extra_image';
     public const XPATH_EXTRA_FIELDS = '%s/attributes/extra_fields';
+    public const XML_PATH_IMAGE_VARIANT = '%s/attributes/image';
 
     public const PWA_BASE_URL = '%s/pwa/base_url';
     public const PWA_CUSTOM_URL = '%s/pwa/custom_url';
@@ -138,6 +139,15 @@ interface RepositoryInterface
      * @return string
      */
     public function getExtraImage(int $storeId = null): string;
+
+    /**
+     * Get variant image attribute
+     *
+     * @param int|null $storeId
+     *
+     * @return string
+     */
+    public function getImageVariant(int $storeId = null): string;
 
     /**
      * Get extra fields
