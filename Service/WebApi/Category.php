@@ -14,6 +14,11 @@ use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductColl
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
+use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
+use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\App\Area;
+use Magento\Store\Model\App\Emulation;
 
 /**
  * Category web API service class
@@ -43,20 +48,40 @@ class Category
      * @var ProductCollectionFactory
      */
     private $productCollectionFactory;
+    /**
+     * @var ConfigRepository
+     */
+    private $configRepository;
+    /**
+     * @var UrlInterface
+     */
+    private $urlBuilder;
+    /**
+     * @var Emulation
+     */
+    private $appEmulation;
 
     /**
      * @param CollectionFactory $collectionFactory
      * @param ProductCollectionFactory $productCollectionFactory
      * @param CollectionProcessorInterface $collectionProcessor
+     * @param ConfigRepository $configRepository
+     * @param UrlInterface $urlBuilder
      */
     public function __construct(
         CollectionFactory $collectionFactory,
         ProductCollectionFactory $productCollectionFactory,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        ConfigRepository $configRepository,
+        UrlInterface $urlBuilder,
+        Emulation $appEmulation
     ) {
         $this->collectionFactory = $collectionFactory;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->collectionProcessor = $collectionProcessor;
+        $this->configRepository = $configRepository;
+        $this->urlBuilder = $urlBuilder;
+        $this->appEmulation = $appEmulation;
     }
 
     /**
@@ -69,13 +94,15 @@ class Category
      */
     public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
     {
+        $this->appEmulation->startEnvironmentEmulation($storeId, Area::AREA_FRONTEND, true);
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
+        /** @var CategoryModel $category */
         foreach ($collection as $category) {
             $data[] = [
                 "id" => $category->getId(),
                 "name" => $category->getName(),
-                "url" => $category->getUrl(),
+                "url" => $this->getUrl($category->getUrl(), $storeId),
                 "visible" => $category->getIsActive(),
                 "product_ids" => $this->getProductIds($storeId, $category),
                 "parent_category_id" => $this->getParentCategoryId($category),
@@ -83,7 +110,23 @@ class Category
                 "updated_at" => $category->getUpdatedAt()
             ];
         }
+        $this->appEmulation->stopEnvironmentEmulation();
         return $data;
+    }
+
+    /**
+     * @param string $url
+     * @param int $storeId
+     * @return string
+     */
+    private function getUrl(string $url, int $storeId): string
+    {
+        if ($this->configRepository->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
+            $baseUrl = $this->configRepository->getBaseUrlStore($storeId);
+            $pwaUrl = $this->configRepository->getBaseUrl($storeId);
+            return str_replace($baseUrl, $pwaUrl, $url);
+        }
+        return $url;
     }
 
     /**

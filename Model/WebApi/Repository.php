@@ -311,4 +311,16 @@ class Repository implements RepositoryInterface
         }
         return $this->cart->execute($storeId, ['entity_id' => null, 'filter' => $filter], $searchCriteria);
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function restore(string $encryptedId): CartInterface
+    {
+        $quoteId = $this->encryptor->decrypt($encryptedId);
+        $quote = $this->quoteRepository->get($quoteId);
+        $this->checkoutSession->replaceQuote($quote);
+
+        return $quote;
+    }
 }

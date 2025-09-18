@@ -15,6 +15,7 @@ use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepositoryInterface;
+use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 
 /**
  * Config repository class
@@ -175,6 +176,42 @@ class Repository implements ConfigRepositoryInterface
     /**
      * @inheritDoc
      */
+    public function getPwaBaseUrl(int $storeId = null): string
+    {
+        return $this->getStoreValue(self::PWA_BASE_URL, $storeId);
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getPwaCustomUrl(int $storeId = null): string
+    {
+        return rtrim($this->getStoreValue(self::PWA_CUSTOM_URL, $storeId), '/') . '/';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getBaseUrl(int $storeId = null): string
+    {
+        if ($this->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
+            return $this->getPwaCustomUrl($storeId);
+        } else {
+            return $this->getBaseUrlStore($storeId);
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function isAddStoreCodeToUrl(int $storeId = null): string
+    {
+        return $this->getStoreValue(self::ADD_STORE_CODE_TO_URL, $storeId);
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function getExtensionCode(): string
     {
         return self::EXTENSION_CODE;
@@ -294,5 +331,10 @@ class Repository implements ConfigRepositoryInterface
             return [];
         }
         return $this->serializer->unserialize($value);
+    }
+
+    public function getBaseUrlStore(int $storeId = null): string
+    {
+        return $this->storeManager->getStore($storeId)->getBaseUrl();
     }
 }

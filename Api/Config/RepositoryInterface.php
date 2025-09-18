@@ -30,6 +30,11 @@ interface RepositoryInterface
     public const XML_PATH_DESCRIPTION = '%s/attributes/description';
     public const XPATH_EXTRA_FIELDS = '%s/attributes/extra_fields';
 
+    public const PWA_BASE_URL = '%s/pwa/base_url';
+    public const PWA_CUSTOM_URL = '%s/pwa/custom_url';
+
+    public const ADD_STORE_CODE_TO_URL = 'web/url/use_store';
+
     /**
      * Get extension version
      *
@@ -135,4 +140,34 @@ interface RepositoryInterface
      * @return string
      */
     public function getSupportLink(): string;
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getPwaBaseUrl(int $storeId = null): string;
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getPwaCustomUrl(int $storeId = null): string;
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getBaseUrl(int $storeId = null): string;
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function getBaseUrlStore(int $storeId = null): string;
+
+    /**
+     * @param int|null $storeId
+     * @return string
+     */
+    public function isAddStoreCodeToUrl(int $storeId = null): string;
 }

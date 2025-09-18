@@ -21,6 +21,7 @@ use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Store\Model\StoreManagerInterface;
+use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 
 /**
  * Product web API service class
@@ -149,7 +150,7 @@ class Product
                 "short_description"    => $product->getShortDescription(),
                 "description"          => $this->getAttributeValue($product, $description, $descriptionType),
                 "price"                => $product->getPrice(),
-                "url"                  => $product->getProductUrl(),
+                "url"                  => $this->getUrl($product->getProductUrl(), $storeId),
                 "sku"                  => $this->getAttributeValue($product, $sku, $skuType),
                 "brand"                => $this->getAttributeValue($product, $brand, $brandType),
                 "main_image"           => $this->getMainImage($product),
@@ -172,6 +173,21 @@ class Product
         }
 
         return $data;
+    }
+
+    /**
+     * @param string $url
+     * @param int $storeId
+     * @return string
+     */
+    private function getUrl(string $url, int $storeId)
+    {
+        if ($this->configRepository->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
+            $baseUrl = $this->configRepository->getBaseUrlStore($storeId);
+            $pwaUrl = $this->configRepository->getBaseUrl($storeId);
+            return str_replace($baseUrl, $pwaUrl, $url);
+        }
+        return $url;
     }
 
     /**

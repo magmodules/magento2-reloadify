@@ -21,6 +21,9 @@
                 <brand>manufacturer</brand>
                 <description>description</description>
             </attributes>
+            <restore_cart>
+                <url>frontend</url>
+            </restore_cart>
         </magmodules_reloadify>
     </default>
 </config>

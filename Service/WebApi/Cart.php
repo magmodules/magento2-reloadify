@@ -11,12 +11,13 @@ use Magento\Catalog\Model\Product\Type;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Item;
 use Magento\Quote\Model\ResourceModel\Quote\Collection;
 use Magento\Quote\Model\ResourceModel\Quote\CollectionFactory;
 use Magento\Store\Model\StoreManagerInterface;
+use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
+use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 
 /**
  * Cart web API service class
@@ -41,39 +42,38 @@ class Cart
      */
     private $quoteCollectionFactory;
     /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-    /**
      * @var EncryptorInterface
      */
     private $encryptor;
     /**
-     * @var null
-     */
-    private $storeUrl = null;
-    /**
      * @var CollectionProcessorInterface
      */
     private $collectionProcessor;
+    /**
+     * @var ConfigRepository
+     */
+    private $configRepository;
 
     /**
      * Cart constructor.
      *
-     * @param CollectionFactory     $quoteCollectionFactory
+     * @param CollectionFactory $quoteCollectionFactory
      * @param StoreManagerInterface $storeManager
-     * @param EncryptorInterface    $encryptor
+     * @param EncryptorInterface $encryptor
+     * @param CollectionProcessorInterface $collectionProcessor
+     * @param ConfigRepository $configRepository
      */
     public function __construct(
         CollectionFactory $quoteCollectionFactory,
         StoreManagerInterface $storeManager,
         EncryptorInterface $encryptor,
-        CollectionProcessorInterface $collectionProcessor
+        CollectionProcessorInterface $collectionProcessor,
+        ConfigRepository $configRepository
     ) {
         $this->quoteCollectionFactory = $quoteCollectionFactory;
-        $this->storeManager = $storeManager;
         $this->encryptor = $encryptor;
         $this->collectionProcessor = $collectionProcessor;
+        $this->configRepository = $configRepository;
     }
 
     /**
@@ -154,31 +154,13 @@ class Cart
      */
     private function getRecoveryUrl(int $storeId, string $quoteId): string
     {
-        $storeUrl = $this->getStoreUrl($storeId);
-        if ($storeUrl) {
-            return $storeUrl . 'reloadify/cart/restore/?id=' . urlencode($this->encryptor->encrypt($quoteId));
-        } else {
-            return 'the store does not exists';
+        if ($this->configRepository->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
+            $pwaUrl = $this->configRepository->getBaseUrl($storeId);
+            return $pwaUrl . '?id=' . urlencode($this->encryptor->encrypt($quoteId));
         }
-    }
 
-    /**
-     * Get store url
-     *
-     * @param int $storeId
-     *
-     * @return string
-     */
-    private function getStoreUrl(int $storeId): string
-    {
-        if ($this->storeUrl === null) {
-            try {
-                $this->storeUrl = $this->storeManager->getStore($storeId)->getBaseUrl();
-            } catch (NoSuchEntityException $e) {
-                $this->storeUrl = '';
-            }
-        }
-        return $this->storeUrl;
+        $storeUrl = $this->configRepository->getBaseUrlStore($storeId);
+        return $storeUrl . 'reloadify/cart/restore/?id=' . urlencode($this->encryptor->encrypt($quoteId));
     }
 
     /**
