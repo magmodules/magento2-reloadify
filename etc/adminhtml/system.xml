@@ -19,6 +19,7 @@
             <include path="Magmodules_Reloadify::system/branding.xml"/>
             <include path="Magmodules_Reloadify::system/attributes.xml"/>
             <include path="Magmodules_Reloadify::system/general.xml"/>
+            <include path="Magmodules_Reloadify::system/pwa.xml"/>
             <include path="Magmodules_Reloadify::system/debug.xml"/>
         </section>
     </system>

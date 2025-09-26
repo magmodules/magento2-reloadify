@@ -15,14 +15,6 @@ use Monolog\Logger;
  */
 class Debug extends Base
 {
-
-    /**
-     * @var int
-     */
     protected $loggerType = Logger::DEBUG;
-
-    /**
-     * @var string
-     */
-    protected $fileName = '/var/log/reloadify/debug.log';
+    protected $fileName = '/var/log/reloadify-debug.log';
 }

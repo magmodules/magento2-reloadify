@@ -141,4 +141,10 @@
             <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
+    <route url="/V1/reloadify/restore-cart/:encryptedId" method="POST">
+        <service class="Magmodules\Reloadify\Api\WebApi\CartRestoreInterface" method="restore"/>
+        <resources>
+            <resource ref="anonymous"/>
+        </resources>
+    </route>
 </routes>

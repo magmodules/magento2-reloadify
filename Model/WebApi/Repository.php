@@ -181,7 +181,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getProduct(int $storeId, int $entityId = null): array
+    public function getProduct(int $storeId, ?int $entityId = null): array
     {
         return $this->product->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }
@@ -210,7 +210,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getVariant(int $storeId, int $entityId = null): array
+    public function getVariant(int $storeId, ?int $entityId = null): array
     {
         return $this->variants->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }
@@ -252,7 +252,7 @@ class Repository implements RepositoryInterface
     /**
      * @inheritDoc
      */
-    public function getCategory(int $storeId, int $entityId = null): array
+    public function getCategory(int $storeId, ?int $entityId = null): array
     {
         return $this->category->execute($storeId, ['entity_id' => $entityId, 'filter' => []]);
     }

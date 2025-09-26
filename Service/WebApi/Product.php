@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Service\WebApi;
 
 use Magento\Catalog\Model\Product as ProductModel;
+use Magento\Catalog\Model\Product\Gallery\ReadHandler as GalleryReadHandler;
+use Magento\Catalog\Model\Product\Media\Config as CatalogProductMediaConfig;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
@@ -21,6 +23,7 @@ use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Store\Model\StoreManagerInterface;
+use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 
 /**
  * Product web API service class
@@ -74,6 +77,14 @@ class Product
      * @var AttributeRepositoryInterface
      */
     private $attributeRepository;
+    /**
+     * @var GalleryReadHandler
+     */
+    private $galleryReadHandler;
+    /**
+     * @var CatalogProductMediaConfig
+     */
+    private $catalogProductMediaConfig;
 
     private $mediaPath = '';
 
@@ -87,6 +98,9 @@ class Product
      * @param CollectionProcessorInterface $collectionProcessor
      * @param Visibility $productVisibility
      * @param StoreManagerInterface $storeManager
+     * @param AttributeRepositoryInterface $attributeRepository
+     * @param GalleryReadHandler $galleryReadHandler
+     * @param CatalogProductMediaConfig $catalogProductMediaConfig
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
@@ -96,7 +110,9 @@ class Product
         CollectionProcessorInterface $collectionProcessor,
         Visibility $productVisibility,
         StoreManagerInterface $storeManager,
-        AttributeRepositoryInterface $attributeRepository
+        AttributeRepositoryInterface $attributeRepository,
+        GalleryReadHandler $galleryReadHandler,
+        CatalogProductMediaConfig $catalogProductMediaConfig
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->reviewCollectionFactory = $reviewCollectionFactory;
@@ -106,6 +122,8 @@ class Product
         $this->productVisibility = $productVisibility;
         $this->storeManager = $storeManager;
         $this->attributeRepository = $attributeRepository;
+        $this->galleryReadHandler = $galleryReadHandler;
+        $this->catalogProductMediaConfig = $catalogProductMediaConfig;
     }
 
     /**
@@ -115,7 +133,7 @@ class Product
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -149,10 +167,11 @@ class Product
                 "short_description"    => $product->getShortDescription(),
                 "description"          => $this->getAttributeValue($product, $description, $descriptionType),
                 "price"                => $product->getPrice(),
-                "url"                  => $product->getProductUrl(),
+                "url"                  => $this->getUrl($product->getProductUrl(), $storeId),
                 "sku"                  => $this->getAttributeValue($product, $sku, $skuType),
                 "brand"                => $this->getAttributeValue($product, $brand, $brandType),
-                "main_image"           => $this->getMainImage($product),
+                "main_image"           => $this->getImage($product, $this->configRepository->getMainImage($storeId)),
+                "extra_image"          => $this->getImage($product, $this->configRepository->getExtraImage($storeId)),
                 "visible"              => (bool)((int)$product->getVisibility() - 1),
                 "variant_ids"          => $this->getVariants($product),
                 "relevant_product_ids" => $product->getRelatedProductIds(),
@@ -172,6 +191,21 @@ class Product
         }
 
         return $data;
+    }
+
+    /**
+     * @param string $url
+     * @param int $storeId
+     * @return string
+     */
+    private function getUrl(string $url, int $storeId)
+    {
+        if ($this->configRepository->getPwaBaseUrl($storeId) == BaseUrl::PWA) {
+            $baseUrl = $this->configRepository->getBaseUrlStore($storeId);
+            $pwaUrl = $this->configRepository->getBaseUrl($storeId);
+            return str_replace($baseUrl, $pwaUrl, $url);
+        }
+        return $url;
     }
 
     /**
@@ -202,7 +236,7 @@ class Product
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $collection = $this->productsCollectionFactory->create()
             ->addAttributeToSelect('*')
@@ -223,11 +257,11 @@ class Product
 
     /**
      * @param Collection $products
-     * @param array      $filters
-     *
+     * @param array $filters
+     * @param int|null $storeId
      * @return Collection
      */
-    private function applyFilter(Collection $products, array $filters, int $storeId = null)
+    private function applyFilter(Collection $products, array $filters, ?int $storeId = null)
     {
         if (in_array('delta', $filters) && $this->requestLogCollection->getSize()) {
             $lastRequestDate = $this->requestLogCollection->addFieldToFilter(
@@ -252,20 +286,41 @@ class Product
     }
 
     /**
-     * Get the main image URL for a product.
+     * Get the image URL for a product.
      *
      * @param \Magento\Catalog\Model\Product $product The product instance.
      * @return string The full URL of the product's main image, or an empty string if no image exists.
      */
-    private function getMainImage($product): string
+    private function getImage($product, $attribute): string
     {
-        if ($image = $product->getImage()) {
-            return $this->getMediaBaseUrl($product->getStoreId())
-                . 'catalog/product'
-                . $this->normalizeImagePath($image);
+        if ($attribute && ($attribute != 'last')) {
+            if ($url = $product->getData($attribute)) {
+                if ($url != 'no_selection') {
+                    return $this->catalogProductMediaConfig->getMediaUrl($url);
+                }
+            }
         }
 
-        return '';
+        $images = [];
+        $galleryImages = $product->getMediaGallery('images');
+        if (!$galleryImages) {
+            $this->galleryReadHandler->execute($product);
+            $galleryImages = $product->getMediaGallery('images');
+        }
+
+        foreach ($galleryImages as $image) {
+            if (empty($image['disabled'])) {
+                $images[] = $this->catalogProductMediaConfig->getMediaUrl($image['file']);
+            }
+        }
+        if ($attribute && ($attribute == 'last')) {
+            $imageCount = count($images);
+            if ($imageCount > 1) {
+                $mainImage = $images[$imageCount - 1];
+                array_unshift($images, $mainImage);
+            }
+        }
+        return $images[0] ?? '';
     }
 
     /**

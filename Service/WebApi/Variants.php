@@ -96,7 +96,7 @@ class Variants
      *
      * @return array
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $productIds = $this->getChildProducts($extra['entity_id']);
         $websiteId = $this->configRepository->getStore((int)$storeId)->getWebsiteId();
@@ -160,7 +160,7 @@ class Variants
      *
      * @return array
      */
-    private function getChildProducts(int $entityId = null)
+    private function getChildProducts(?int $entityId = null)
     {
         //configurable children
         $connection = $this->resourceConnection->getConnection();
@@ -212,7 +212,7 @@ class Variants
     private function getCollection(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $productIds = $this->getChildProducts($extra['entity_id']);
         $collection = $this->productsCollectionFactory->create()
@@ -250,11 +250,40 @@ class Variants
      */
     private function getMainImage($product)
     {
+        if ($image = $product->getData($this->configRepository->getImageVariant((int)$product->getStoreId()))) {
+            return $this->getMediaBaseUrl($product->getStoreId())
+                . 'catalog/product'
+                . $this->normalizeImagePath($image);
+        }
+
+        return '';
+    }
+
+    /**
+     * Retrieve the base URL for media files for a specific store.
+     *
+     * @param int $storeId The store ID.
+     * @return string The base media URL for the store.
+     */
+    private function getMediaBaseUrl(int $storeId): string
+    {
         if (!$this->mediaPath) {
-            $this->mediaPath = $this->storeManager->getStore($product->getStoreId())
+            $this->mediaPath = $this->storeManager->getStore($storeId)
                 ->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
         }
-        return $this->mediaPath . 'catalog/product' . $product->getImage();
+
+        return $this->mediaPath;
+    }
+
+    /**
+     * Normalize the image path by ensuring it starts with a forward slash.
+     *
+     * @param string $image The image path from the product.
+     * @return string The normalized image path.
+     */
+    private function normalizeImagePath(string $image): string
+    {
+        return '/' . ltrim($image, '/');
     }
 
     /**

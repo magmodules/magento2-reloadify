@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<include xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_include.xsd">
+    <group id="pwa" translate="label" type="text" sortOrder="90" showInDefault="1" showInWebsite="1" showInStore="1">
+        <label>PWA Settings</label>
+        <field id="url" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+            <label>Base URL</label>
+            <source_model>Magmodules\Reloadify\Model\Config\Source\BaseUrl</source_model>
+            <config_path>magmodules_reloadify/pwa/base_url</config_path>
+        </field>
+        <field id="custom_url" translate="label" type="text" sortOrder="110" showInDefault="1" showInWebsite="0" showInStore="1">
+            <label>PWA URL</label>
+            <config_path>magmodules_reloadify/pwa/custom_url</config_path>
+            <backend_model>Magmodules\Reloadify\Model\Config\Backend\ValidateUrl</backend_model>
+            <depends>
+                <field id="url">pwa</field>
+            </depends>
+            <comment>
+                <![CDATA[This URL will be used when "PWA" is selected above. The encrypted quote ID will be appended to it as a query parameter, like:<br/><br/>
+                <code>?id={encrypted_quote_id}</code><br/><br/>
+                Use this URL on the frontend (e.g. in email links) to restore the cart via your PWA.<br/><br/>
+                If you use store-codes in the frontend make sure to also add these to this url on store-view level!]]>
+            </comment>
+        </field>
+    </group>
+</include>

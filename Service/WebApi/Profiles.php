@@ -117,7 +117,7 @@ class Profiles
      * @return array
      * @throws LocalizedException
      */
-    public function execute(int $storeId, array $extra = [], SearchCriteriaInterface $searchCriteria = null): array
+    public function execute(int $storeId, array $extra = [], ?SearchCriteriaInterface $searchCriteria = null): array
     {
         $data = [];
         $customers = $this->getCustomers($storeId, $extra, $searchCriteria);
@@ -126,6 +126,7 @@ class Profiles
             $mainData = [
                 "id" => $customer->getId(),
                 "store_id" => $customer->getStoreId(),
+                "has_an_account" => true,
                 "email" => $customer->getEmail(),
                 "first_name" => $customer->getFirstname(),
                 "middle_name" => $customer->getMiddlename(),
@@ -180,7 +181,7 @@ class Profiles
     private function getCustomers(
         int $storeId,
         array $extra = [],
-        SearchCriteriaInterface $searchCriteria = null
+        ?SearchCriteriaInterface $searchCriteria = null
     ): array {
         try {
             $websiteId = $this->storeManager->getStore($storeId)->getWebsiteId();

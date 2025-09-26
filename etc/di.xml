@@ -13,6 +13,8 @@
                 type="Magmodules\Reloadify\Model\Log\Repository"/>
     <preference for="Magmodules\Reloadify\Api\WebApi\RepositoryInterface"
                 type="Magmodules\Reloadify\Model\WebApi\Repository"/>
+    <preference for="Magmodules\Reloadify\Api\WebApi\CartRestoreInterface"
+                type="Magmodules\Reloadify\Model\WebApi\CartRestoreRepository"/>
     <preference for="Magmodules\Reloadify\Api\Selftest\RepositoryInterface"
                 type="Magmodules\Reloadify\Model\Selftest\Repository"/>
     <preference for="Magmodules\Reloadify\Api\RequestLog\RepositoryInterface"
@@ -20,25 +22,30 @@
     <preference for="Magmodules\Reloadify\Api\RequestLog\Data\DataInterface"
                 type="Magmodules\Reloadify\Model\RequestLog\DataModel"/>
 
-    <type name="Magmodules\Reloadify\Logger\Handler">
+    <virtualType name="MagmodulesReloadifyDebugLogger" type="Monolog\Logger">
         <arguments>
-            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+            <argument name="name" xsi:type="string">MagmodulesReloadifyDebug</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Magmodules\Reloadify\Logger\Handler\Debug</item>
+            </argument>
         </arguments>
-    </type>
-    <type name="Magmodules\Reloadify\Logger\ErrorLogger">
+    </virtualType>
+    <virtualType name="MagmodulesReloadifyErrorLogger" type="Monolog\Logger">
         <arguments>
-            <argument name="name" xsi:type="string">ReloadifyError</argument>
+            <argument name="name" xsi:type="string">MagmodulesReloadifyError</argument>
             <argument name="handlers" xsi:type="array">
                 <item name="system" xsi:type="object">Magmodules\Reloadify\Logger\Handler\Error</item>
             </argument>
         </arguments>
-    </type>
+    </virtualType>
     <type name="Magmodules\Reloadify\Logger\DebugLogger">
         <arguments>
-            <argument name="name" xsi:type="string">ReloadifyDebug</argument>
-            <argument name="handlers" xsi:type="array">
-                <item name="system" xsi:type="object">Magmodules\Reloadify\Logger\Handler\Debug</item>
-            </argument>
+            <argument name="logger" xsi:type="object">MagmodulesReloadifyDebugLogger</argument>
+        </arguments>
+    </type>
+    <type name="Magmodules\Reloadify\Logger\ErrorLogger">
+        <arguments>
+            <argument name="logger" xsi:type="object">MagmodulesReloadifyErrorLogger</argument>
         </arguments>
     </type>
 
