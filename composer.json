@@ -19,5 +19,27 @@
         "psr-4": {
             "Magmodules\\Reloadify\\": ""
         }
+    },
+    "extra": {
+        "magmodules": {
+            "module-name": {
+                "en": "Reloadify",
+                "nl": "Reloadify"
+            },
+            "links": {
+                "product": {
+                    "en": "https://www.magmodules.eu/magento2-reloadify.html",
+                    "nl": "https://www.magmodules.nl/magento2-reloadify.html"
+                },
+                "docs": {
+                    "en": "https://www.magmodules.eu/help/magento2-reloadify/",
+                    "nl": "https://www.magmodules.nl/help/magento2-reloadify/"
+                },
+                "support": {
+                    "en": "https://www.magmodules.eu/support/",
+                    "nl": "https://www.magmodules.nl/support/"
+                }
+            }
+        }
     }
 }
