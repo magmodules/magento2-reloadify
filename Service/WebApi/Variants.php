@@ -7,8 +7,10 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Catalog\Api\Data\ProductAttributeInterface;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
+use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\ResourceConnection;
@@ -63,16 +65,29 @@ class Variants
      * @var StoreManagerInterface
      */
     private $storeManager;
+    /**
+     * @var AttributeRepositoryInterface
+     */
+    private $attributeRepository;
+    /**
+     * Frontend input types, keyed by attribute code
+     *
+     * @var array
+     */
+    private $attributeTypes = [];
 
     private $mediaPath = '';
 
     /**
      * Variants constructor.
      *
-     * @param ProductCollectionFactory $productsCollectionFactory
-     * @param ResourceConnection       $resourceConnection
-     * @param ConfigRepository         $configRepository
-     * @param Stock                    $stock
+     * @param ProductCollectionFactory     $productsCollectionFactory
+     * @param ResourceConnection           $resourceConnection
+     * @param ConfigRepository             $configRepository
+     * @param Stock                        $stock
+     * @param CollectionProcessorInterface $collectionProcessor
+     * @param StoreManagerInterface        $storeManager
+     * @param AttributeRepositoryInterface $attributeRepository
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
@@ -80,7 +95,8 @@ class Variants
         ConfigRepository $configRepository,
         Stock $stock,
         CollectionProcessorInterface $collectionProcessor,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        AttributeRepositoryInterface $attributeRepository
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->resourceConnection = $resourceConnection;
@@ -88,6 +104,7 @@ class Variants
         $this->stock = $stock;
         $this->collectionProcessor = $collectionProcessor;
         $this->storeManager = $storeManager;
+        $this->attributeRepository = $attributeRepository;
     }
 
     /**
@@ -101,10 +118,19 @@ class Variants
         $productIds = $this->getChildProducts($extra['entity_id']);
         $websiteId = $this->configRepository->getStore((int)$storeId)->getWebsiteId();
         $ean = $this->configRepository->getEan($storeId);
+        $eanType = $this->getAttributeType($ean);
+
         $name = $this->configRepository->getName($storeId);
+        $nameType = $this->getAttributeType($name);
+
         $sku = $this->configRepository->getSku($storeId);
+        $skuType = $this->getAttributeType($sku);
+
         $brand = $this->configRepository->getBrand($storeId);
+        $brandType = $this->getAttributeType($brand);
+
         $description = $this->configRepository->getDescription($storeId);
+        $descriptionType = $this->getAttributeType($description);
 
         $data = [];
         $collection = $this->getCollection($storeId, $extra, $searchCriteria);
@@ -116,18 +142,18 @@ class Variants
             }
             $data[] = [
                 "id"           => $product->getId(),
-                "title"        => $this->getAttributeValue($product, $name),
-                "description"  => $this->getAttributeValue($product, $description),
+                "title"        => $this->getAttributeValue($product, $name, $nameType),
+                "description"  => $this->getAttributeValue($product, $description, $descriptionType),
                 "article_code" => $product->getSku(),
-                "ean"          => $this->getAttributeValue($product, $ean),
+                "ean"          => $this->getAttributeValue($product, $ean, $eanType),
                 "main_image"   => $this->getMainImage($product),
                 "price_cost"   => $product->getCost(),
                 "price_excl"   => $product->getPrice(),
                 "price_incl"   => $product->getPrice(),
                 "unit_price"   => $product->getPrice(),
                 "special_price" => $product->getSpecialPrice(),
-                "sku"          => $this->getAttributeValue($product, $sku),
-                "brand"        => $this->getAttributeValue($product, $brand),
+                "sku"          => $this->getAttributeValue($product, $sku, $skuType),
+                "brand"        => $this->getAttributeValue($product, $brand, $brandType),
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
                 "product_id"   => $productIds[$product->getId()],
                 "created_at"   => $product->getCreatedAt(),
@@ -138,21 +164,57 @@ class Variants
     }
 
     /**
-     * @param $product
-     * @param $attribute
-     * @return mixed|string
+     * Resolve the frontend input type of a product attribute.
+     *
+     * Returns an empty string for attributes that can not be resolved, so the raw
+     * attribute data is used as value instead of failing the whole request.
+     *
+     * @param string $attribute
+     *
+     * @return string
      */
-    private function getAttributeValue($product, $attribute)
+    private function getAttributeType(string $attribute): string
     {
-        $value = '';
-        if ($attribute) {
-            if ($dropdownValue = $product->getAttributeText($attribute)) {
-                $value = $dropdownValue;
-            } else {
-                $value = $product->getData($attribute);
+        if (!$attribute || $attribute == 'entity_id') {
+            return '';
+        }
+
+        if (!array_key_exists($attribute, $this->attributeTypes)) {
+            try {
+                $this->attributeTypes[$attribute] = (string)$this->attributeRepository
+                    ->get(ProductAttributeInterface::ENTITY_TYPE_CODE, $attribute)
+                    ->getFrontendInput();
+            } catch (\Throwable $exception) {
+                $this->attributeTypes[$attribute] = '';
             }
         }
-        return $value;
+
+        return $this->attributeTypes[$attribute];
+    }
+
+    /**
+     * @param $product
+     * @param $attribute
+     * @param $type
+     * @return mixed|string
+     */
+    private function getAttributeValue($product, $attribute, $type)
+    {
+        if (!$attribute) {
+            return '';
+        }
+
+        if ($type == 'select' || $type == 'multiselect') {
+            try {
+                if ($dropdownValue = $product->getAttributeText($attribute)) {
+                    return $dropdownValue;
+                }
+            } catch (\Throwable $exception) {
+                // Fall back to the raw attribute data below
+            }
+        }
+
+        return $product->getData($attribute);
     }
 
     /**
@@ -288,14 +350,26 @@ class Variants
     }
 
     /**
-     * @param $product
+     * Retrieve the stock level of a product.
      *
-     * @return string
+     * Products without a cataloginventory_stock_item record are absent from the stock
+     * data entirely, so fall back to 0 rather than reading undefined array keys.
+     *
+     * @param $product
+     * @param $stockData
+     * @param $websiteId
+     *
+     * @return int|float
      */
     private function getStockLevel($product, $stockData, $websiteId)
     {
-        return isset($stockData[$product->getId()]['msi'][$websiteId])
-            ? $stockData[$product->getId()]['msi'][$websiteId]['salable_qty']
-            : $stockData[$product->getId()]['qty'];
+        $productStock = $stockData[$product->getId()] ?? null;
+        if (!$productStock) {
+            return 0;
+        }
+
+        return $productStock['msi'][$websiteId]['salable_qty']
+            ?? $productStock['qty']
+            ?? 0;
     }
 }

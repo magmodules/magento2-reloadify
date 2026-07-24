@@ -1,37 +1,81 @@
-# Magento® 2 Reloadify Integration
+# Reloadify for Magento 2
 
-The Reloadify extension makes it effortless to connect your Magento® 2 store with the Reloadify platform.
+Connect your Magento 2 store to the [Reloadify](https://www.magmodules.eu/magento2-reloadify.html) marketing automation platform. This extension syncs your customer data, products, orders, and abandoned carts automatically, so Reloadify can power personalized email campaigns and triggered flows based on real purchase behavior.
+
+## Features
+
+- Automatic sync of products, categories, and variants
+- Customer profiles and newsletter subscriber sync
+- Order history and abandoned cart data
+- Cart restore links for abandoned cart emails
+- PWA/headless frontend support
+- Flexible product attribute mapping
+- Delta sync for efficient product updates
+- Debug logging for troubleshooting
+
+## Requirements
+
+- Magento 2.3.x or higher
+- PHP 7.4 or higher
 
 ## Installation
 
-Before you start up the installation process, we recommend that you make a backup of your webshop files, as well as the database.
+```bash
+composer require magmodules/magento2-reloadify
+php bin/magento setup:upgrade
+php bin/magento cache:flush
+```
 
-There are 2 different methods to install the Magento® 2 extension.
+## Quick Start
 
-1.  Install by using Composer
-2.  Install by using the Magento® Marketplace
+1. Enable the module at **Stores > Configuration > Reloadify > General**
+2. Generate an integration token via CLI: `bin/magento reloadify:integration`
+3. Copy the access token to your Reloadify account
+4. Configure attribute mapping if needed
+5. Run selftest to verify: `bin/magento reloadify:selftest`
 
-#### 1) Installation using Composer
+## Documentation
 
-1 . Connect to your server running Magento® 2 using SSH.  
-2 . Locate your Magento® 2 project root.  
-3 . Install the Magento® 2 extension through composer and wait till it's completed:
+**English:**
 
-`composer require magmodules/magento2-reloadify`  
-   
-4\. After that run the Magento® upgrade and clean cache:  
-`php bin/magento setup:upgrade`  
-`php bin/magento cache:flush`  
-  
-5 .  If Magento® is running in production mode you also need to redeploy the static content:  
-`php bin/magento setup:static-content:deploy`  
-  
-6 .  After the installation: Go to your Magento® admin portal and open: `Stores > Configuration > Reloadify > General` to start setting up your connection.
+- [Getting Started](docs/QUICKSTART.md) - Get up and running in 5 minutes
+- [Configuration Guide](docs/CONFIGURATION.md) - Complete configuration reference
+- [Best Practices](docs/BEST_PRACTICES.md) - Recommended setups and examples
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [CLI Commands](docs/CLI_COMMANDS.md) - Command line tools
 
-#### 2) Installation using the Magento® Marketplace
+**Nederlands:**
 
-The module will be available on the Magento® Marketplace later this month.
+- [Aan de slag](docs/QUICKSTART_NL.md) - In 5 minuten aan de slag
+- [Configuratie](docs/CONFIGURATION_NL.md) - Volledige configuratie referentie
+- [Best Practices](docs/BEST_PRACTICES_NL.md) - Aanbevolen instellingen en voorbeelden
+- [Probleemoplossing](docs/TROUBLESHOOTING_NL.md) - Veelvoorkomende problemen en oplossingen
+- [CLI Commando's](docs/CLI_COMMANDS_NL.md) - Command line tools
 
-## Compatibility
+## How it Works
 
-The module has a minimum requirement of Magento 2.3 and is tested on Magento version 2.3.x & 2.4.x.
+The extension creates a secure REST API that Reloadify uses to fetch your store data:
+
+```
+GET /V1/reloadify/products      → Product catalog
+GET /V1/reloadify/orders        → Order history
+GET /V1/reloadify/carts         → Abandoned carts
+GET /V1/reloadify/profiles      → Customer profiles
+GET /V1/reloadify/subscribers   → Newsletter subscribers
+```
+
+All API calls require the integration token for authentication. Data syncs run via Reloadify's servers, not via Magento cron, so there's no performance impact on your store.
+
+## Support
+
+- **Product Page:** [Reloadify for Magento 2](https://www.magmodules.eu/magento2-reloadify.html)
+- **Documentation:** [Magmodules Help Center](https://www.magmodules.eu/help/magento2-reloadify/)
+- **Support:** [Contact Magmodules Support](https://www.magmodules.eu/support/)
+
+## License
+
+See COPYING.txt
+
+## Copyright
+
+Copyright © Magmodules.eu. All rights reserved.
