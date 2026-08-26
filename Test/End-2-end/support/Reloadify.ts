@@ -21,6 +21,7 @@ export interface Route {
  */
 export const ROUTES: Route[] = [
   { method: 'GET', route: '/V1/reloadify/settings', list: false, path: () => 'V1/reloadify/settings' },
+  { method: 'GET', route: '/V1/reloadify/version', list: false, path: () => 'V1/reloadify/version' },
   { method: 'GET', route: '/V1/reloadify/languages', list: false, path: () => 'V1/reloadify/languages' },
   { method: 'GET', route: '/V1/reloadify/language/:entity_id', list: false, path: (s) => `V1/reloadify/language/${s.storeId}` },
   { method: 'GET', route: '/V1/reloadify/language/:store_id/profiles', list: true, path: (s) => `V1/reloadify/language/${s.storeId}/profiles` },

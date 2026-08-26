@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Api\WebApi;
 
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magmodules\Reloadify\Api\WebApi\Data\VersionInterface;
 
 /**
  * Feed repository interface
@@ -19,6 +20,11 @@ interface RepositoryInterface
      * @return mixed
      */
     public function getSettings(): array;
+
+    /**
+     * @return \Magmodules\Reloadify\Api\WebApi\Data\VersionInterface
+     */
+    public function getVersion(): VersionInterface;
 
     /**
      * @param int $entityId

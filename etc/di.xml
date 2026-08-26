@@ -15,6 +15,8 @@
                 type="Magmodules\Reloadify\Model\WebApi\Repository"/>
     <preference for="Magmodules\Reloadify\Api\WebApi\CartRestoreInterface"
                 type="Magmodules\Reloadify\Model\WebApi\CartRestoreRepository"/>
+    <preference for="Magmodules\Reloadify\Api\WebApi\Data\VersionInterface"
+                type="Magmodules\Reloadify\Model\WebApi\Data\Version"/>
     <preference for="Magmodules\Reloadify\Api\Selftest\RepositoryInterface"
                 type="Magmodules\Reloadify\Model\Selftest\Repository"/>
     <preference for="Magmodules\Reloadify\Api\RequestLog\RepositoryInterface"

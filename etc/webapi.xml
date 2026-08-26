@@ -15,6 +15,12 @@
             <resource ref="Magmodules_Reloadify::webapi"/>
         </resources>
     </route>
+    <route url="/V1/reloadify/version" method="GET">
+        <service class="Magmodules\Reloadify\Api\WebApi\RepositoryInterface" method="getVersion"/>
+        <resources>
+            <resource ref="Magmodules_Reloadify::webapi"/>
+        </resources>
+    </route>
 
     <!-- Language Endpoints -->
     <route url="/V1/reloadify/languages" method="GET">
