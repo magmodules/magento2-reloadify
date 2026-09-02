@@ -7,78 +7,68 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Test\Unit\Model\WebApi;
 
-use Magento\Checkout\Model\Session as CheckoutSession;
-use Magento\Framework\Encryption\EncryptorInterface;
-use Magento\Quote\Api\CartRepositoryInterface;
+use Magento\Authorization\Model\UserContextInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Model\Quote;
-use Magento\Sales\Model\ResourceModel\Order\Collection as OrderCollection;
-use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
 use Magmodules\Reloadify\Model\WebApi\CartRestoreRepository;
+use Magmodules\Reloadify\Service\Cart\QuoteRestorer;
 use Magmodules\Reloadify\Test\Unit\Support\CreatesDataModels;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * The PWA counterpart of the restore link: the same rules, answered through the Web API.
+ * The headless counterpart of the restore link: the same rules, answered through the Web API. The
+ * caller is the customer behind a customer token, and customer 0 for anyone else.
  */
 class CartRestoreRepositoryTest extends TestCase
 {
     use CreatesDataModels;
 
-    private CartRepositoryInterface&MockObject $quoteRepository;
-    private CheckoutSession&MockObject $checkoutSession;
-    private OrderCollection&MockObject $orders;
+    private QuoteRestorer&MockObject $restorer;
+    private UserContextInterface&MockObject $userContext;
     private CartRestoreRepository $repository;
 
     protected function setUp(): void
     {
-        $encryptor = $this->createStub(EncryptorInterface::class);
-        $encryptor->method('decrypt')->willReturnCallback(static fn (string $value): string => substr($value, 4));
-        $this->quoteRepository = $this->createMock(CartRepositoryInterface::class);
-        $this->checkoutSession = $this->createMock(CheckoutSession::class);
-        $this->orders = $this->createMock(OrderCollection::class);
-        $this->orders->method('addFieldToFilter')->willReturnSelf();
-        $orderCollectionFactory = $this->createStub(OrderCollectionFactory::class);
-        $orderCollectionFactory->method('create')->willReturn($this->orders);
-
-        $this->repository = new CartRestoreRepository(
-            $encryptor,
-            $this->quoteRepository,
-            $this->checkoutSession,
-            $orderCollectionFactory
-        );
+        $this->restorer = $this->createMock(QuoteRestorer::class);
+        $this->userContext = $this->createMock(UserContextInterface::class);
+        $this->repository = new CartRestoreRepository($this->restorer, $this->userContext);
     }
 
-    public function testTheDecryptedIdIsLoadedAsAnInteger(): void
+    public function testAnAnonymousCallerRestoresAsCustomerZero(): void
     {
-        $quote = $this->createDataModel(Quote::class, ['is_active' => true]);
-        $this->quoteRepository->expects(self::once())->method('get')->with(self::identicalTo(42))->willReturn($quote);
-        $this->checkoutSession->expects(self::once())->method('replaceQuote')->with($quote);
+        $quote = $this->quote(true);
+        $restored = $this->quote(true);
+        $this->restorer->method('load')->with('enc:42')->willReturn($quote);
+        $this->userContext->method('getUserType')->willReturn(UserContextInterface::USER_TYPE_GUEST);
+        $this->restorer->expects(self::once())->method('restore')->with($quote, 0)->willReturn($restored);
 
-        self::assertSame($quote, $this->repository->restore('enc:42'));
+        self::assertSame($restored, $this->repository->restore('enc:42'));
     }
 
-    public function testAnInactiveQuoteWithoutOrderIsReactivated(): void
+    public function testACustomerTokenRestoresAsThatCustomer(): void
     {
-        $quote = $this->createDataModel(Quote::class, ['is_active' => false]);
-        $this->quoteRepository->method('get')->willReturn($quote);
-        $this->orders->method('getSize')->willReturn(0);
-        $this->quoteRepository->expects(self::once())->method('save')->with($quote);
+        $quote = $this->quote(true);
+        $this->restorer->method('load')->willReturn($quote);
+        $this->userContext->method('getUserType')->willReturn(UserContextInterface::USER_TYPE_CUSTOMER);
+        $this->userContext->method('getUserId')->willReturn(7);
+        $this->restorer->expects(self::once())->method('restore')->with($quote, 7)->willReturn($quote);
 
         $this->repository->restore('enc:42');
-
-        self::assertTrue((bool)$quote->getIsActive());
     }
 
-    public function testAQuoteThatBecameAnOrderStaysInactive(): void
+    public function testAQuoteThatBecameAnOrderIsRefused(): void
     {
-        $quote = $this->createDataModel(Quote::class, ['is_active' => false]);
-        $this->quoteRepository->method('get')->willReturn($quote);
-        $this->orders->method('getSize')->willReturn(1);
-        $this->quoteRepository->expects(self::never())->method('save');
+        $this->restorer->method('load')->willReturn($this->quote(false));
+        $this->restorer->method('isQuoteConvertedToOrder')->willReturn(true);
+        $this->restorer->expects(self::never())->method('restore');
 
+        $this->expectException(LocalizedException::class);
         $this->repository->restore('enc:42');
+    }
 
-        self::assertFalse((bool)$quote->getIsActive());
+    private function quote(bool $active): Quote
+    {
+        return $this->createDataModel(Quote::class, ['id' => 42, 'is_active' => $active]);
     }
 }

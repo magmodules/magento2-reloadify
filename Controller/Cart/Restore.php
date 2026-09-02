@@ -7,16 +7,14 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Controller\Cart;
 
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Framework\Controller\Result\Redirect;
+use Magento\Customer\Model\Session as CustomerSession;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
-use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
+use Magmodules\Reloadify\Service\Cart\QuoteRestorer;
 
 /**
  * Restore previously abandoned quote into checkout session.
@@ -25,10 +23,8 @@ class Restore extends Action
 {
     public function __construct(
         Context $context,
-        private readonly EncryptorInterface $encryptor,
-        private readonly CartRepositoryInterface $quoteRepository,
-        private readonly CheckoutSession $checkoutSession,
-        private readonly OrderCollectionFactory $orderCollectionFactory
+        private readonly QuoteRestorer $quoteRestorer,
+        private readonly CustomerSession $customerSession
     ) {
         parent::__construct($context);
     }
@@ -46,20 +42,15 @@ class Restore extends Action
         }
 
         try {
-            $quoteId = $this->encryptor->decrypt($encryptedQuoteId);
-            $quote = $this->quoteRepository->get((int)$quoteId);
+            $quote = $this->quoteRestorer->load((string)$encryptedQuoteId);
 
-            if (!$quote->getIsActive()) {
-                if ($this->isQuoteConvertedToOrder((int)$quoteId)) {
-                    $this->messageManager->addNoticeMessage(__('An order has already been placed for this quote.'));
-                    return $this->redirectToHome($resultRedirect);
-                }
-
-                $quote->setIsActive(true);
-                $this->quoteRepository->save($quote);
+            if (!$quote->getIsActive() && $this->quoteRestorer->isQuoteConvertedToOrder((int)$quote->getId())) {
+                $this->messageManager->addNoticeMessage(__('An order has already been placed for this quote.'));
+                return $this->redirectToHome($resultRedirect);
             }
 
-            $this->checkoutSession->replaceQuote($quote);
+            $this->quoteRestorer->restore($quote, (int)$this->customerSession->getCustomerId());
+
             return $resultRedirect->setPath('checkout/cart/index');
 
         } catch (NoSuchEntityException $e) {
@@ -69,20 +60,6 @@ class Restore extends Action
         }
 
         return $this->redirectToHome($resultRedirect);
-    }
-
-    /**
-     * Checks if a quote was already converted to an order.
-     *
-     * @param int $quoteId
-     * @return bool
-     */
-    private function isQuoteConvertedToOrder(int $quoteId): bool
-    {
-        $collection = $this->orderCollectionFactory->create()
-            ->addFieldToFilter('quote_id', $quoteId);
-
-        return $collection->getSize() > 0;
     }
 
     /**

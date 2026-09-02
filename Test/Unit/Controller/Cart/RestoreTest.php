@@ -7,19 +7,16 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Test\Unit\Controller\Cart;
 
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Customer\Model\Session as CustomerSession;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface as MessageManager;
-use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\Quote;
-use Magento\Sales\Model\ResourceModel\Order\Collection as OrderCollection;
-use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
 use Magmodules\Reloadify\Controller\Cart\Restore;
+use Magmodules\Reloadify\Service\Cart\QuoteRestorer;
 use Magmodules\Reloadify\Test\Unit\Support\CreatesDataModels;
 use Magmodules\Reloadify\Test\Unit\Support\CreatesObjects;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -28,9 +25,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * The restore link a Reloadify abandoned cart e-mail points to (reloadify/cart/restore?id=...).
  *
- * The redirect is the storefront's Magento\Framework\Controller\Result\Redirect, not the admin
- * one: until 1.17.3 the controller was typed to the backend class, so every path that ended on the
- * homepage was a TypeError and an HTTP 500 for the customer.
+ * The redirect is the storefront's Magento\Framework\Controller\Result\Redirect, not the admin one:
+ * typed to the backend class, every path that ended on the homepage was a TypeError and an HTTP 500
+ * for the customer. Which quote the visitor gets is QuoteRestorer's decision, see QuoteRestorerTest.
  */
 class RestoreTest extends TestCase
 {
@@ -40,9 +37,8 @@ class RestoreTest extends TestCase
     private RequestInterface&MockObject $request;
     private Redirect&MockObject $redirect;
     private MessageManager&MockObject $messageManager;
-    private CartRepositoryInterface&MockObject $quoteRepository;
-    private CheckoutSession&MockObject $checkoutSession;
-    private OrderCollection&MockObject $orders;
+    private QuoteRestorer&MockObject $restorer;
+    private CustomerSession&MockObject $customerSession;
     private Restore $controller;
 
     protected function setUp(): void
@@ -59,81 +55,60 @@ class RestoreTest extends TestCase
             'resultFactory' => $resultFactory,
             'messageManager' => $this->messageManager,
         ]);
+        $this->restorer = $this->createMock(QuoteRestorer::class);
+        $this->customerSession = $this->createMock(CustomerSession::class);
 
-        $encryptor = $this->createStub(EncryptorInterface::class);
-        $encryptor->method('decrypt')->willReturnCallback(static fn (string $value): string => substr($value, 4));
-        $this->quoteRepository = $this->createMock(CartRepositoryInterface::class);
-        $this->checkoutSession = $this->createMock(CheckoutSession::class);
-        $this->orders = $this->createMock(OrderCollection::class);
-        $this->orders->method('addFieldToFilter')->willReturnSelf();
-        $orderCollectionFactory = $this->createStub(OrderCollectionFactory::class);
-        $orderCollectionFactory->method('create')->willReturn($this->orders);
-
-        $this->controller = new Restore(
-            $context,
-            $encryptor,
-            $this->quoteRepository,
-            $this->checkoutSession,
-            $orderCollectionFactory
-        );
+        $this->controller = new Restore($context, $this->restorer, $this->customerSession);
     }
 
     public function testALinkWithoutIdGoesToTheHomepage(): void
     {
         $this->request->method('getParam')->with('id')->willReturn(null);
-        $this->quoteRepository->expects(self::never())->method('get');
+        $this->restorer->expects(self::never())->method('load');
         $this->redirect->expects(self::once())->method('setPath')->with('cms/index/index');
 
         self::assertSame($this->redirect, $this->controller->execute());
     }
 
-    public function testAnActiveQuoteIsPutBackInTheSession(): void
+    public function testAQuoteIsRestoredForTheVisitorAndTheVisitorLandsOnTheCart(): void
     {
-        $quote = $this->quote(42, true);
+        $quote = $this->quote(true);
         $this->request->method('getParam')->willReturn('enc:42');
-        $this->quoteRepository->method('get')->with(42)->willReturn($quote);
-        $this->quoteRepository->expects(self::never())->method('save');
-        $this->checkoutSession->expects(self::once())->method('replaceQuote')->with($quote);
+        $this->restorer->method('load')->with('enc:42')->willReturn($quote);
+        $this->customerSession->method('getCustomerId')->willReturn('7');
+        $this->restorer->expects(self::once())->method('restore')->with($quote, 7);
         $this->redirect->expects(self::once())->method('setPath')->with('checkout/cart/index');
 
         $this->controller->execute();
     }
 
-    public function testAnInactiveQuoteWithoutOrderIsReactivated(): void
+    public function testAGuestVisitorIsCustomerZero(): void
     {
-        $quote = $this->quote(42, false);
+        $quote = $this->quote(true);
         $this->request->method('getParam')->willReturn('enc:42');
-        $this->quoteRepository->method('get')->willReturn($quote);
-        $this->orders->method('getSize')->willReturn(0);
-        $this->quoteRepository->expects(self::once())->method('save')->with($quote);
-        $this->checkoutSession->expects(self::once())->method('replaceQuote')->with($quote);
-        $this->redirect->expects(self::once())->method('setPath')->with('checkout/cart/index');
+        $this->restorer->method('load')->willReturn($quote);
+        $this->customerSession->method('getCustomerId')->willReturn(null);
+        $this->restorer->expects(self::once())->method('restore')->with($quote, 0);
 
         $this->controller->execute();
-
-        self::assertTrue((bool)$quote->getIsActive());
     }
 
     public function testAQuoteThatBecameAnOrderIsNotRestored(): void
     {
-        $quote = $this->quote(42, false);
         $this->request->method('getParam')->willReturn('enc:42');
-        $this->quoteRepository->method('get')->willReturn($quote);
-        $this->orders->method('getSize')->willReturn(1);
-        $this->quoteRepository->expects(self::never())->method('save');
-        $this->checkoutSession->expects(self::never())->method('replaceQuote');
+        $this->restorer->method('load')->willReturn($this->quote(false));
+        $this->restorer->method('isQuoteConvertedToOrder')->with(42)->willReturn(true);
+        $this->restorer->expects(self::never())->method('restore');
         $this->messageManager->expects(self::once())->method('addNoticeMessage');
         $this->redirect->expects(self::once())->method('setPath')->with('cms/index/index');
 
         $this->controller->execute();
-
-        self::assertFalse((bool)$quote->getIsActive());
     }
 
     public function testAnUnknownQuoteGoesToTheHomepageWithANotice(): void
     {
         $this->request->method('getParam')->willReturn('enc:404');
-        $this->quoteRepository->method('get')->willThrowException(new NoSuchEntityException());
+        $this->restorer->method('load')->willThrowException(new NoSuchEntityException());
         $this->messageManager->expects(self::once())->method('addNoticeMessage');
         $this->redirect->expects(self::once())->method('setPath')->with('cms/index/index');
 
@@ -143,15 +118,15 @@ class RestoreTest extends TestCase
     public function testAnyOtherFailureGoesToTheHomepageWithAnError(): void
     {
         $this->request->method('getParam')->willReturn('enc:42');
-        $this->quoteRepository->method('get')->willThrowException(new \RuntimeException('Database gone'));
+        $this->restorer->method('load')->willThrowException(new \RuntimeException('Database gone'));
         $this->messageManager->expects(self::once())->method('addErrorMessage');
         $this->redirect->expects(self::once())->method('setPath')->with('cms/index/index');
 
         $this->controller->execute();
     }
 
-    private function quote(int $id, bool $active): Quote
+    private function quote(bool $active): Quote
     {
-        return $this->createDataModel(Quote::class, ['id' => $id, 'is_active' => $active]);
+        return $this->createDataModel(Quote::class, ['id' => 42, 'is_active' => $active]);
     }
 }

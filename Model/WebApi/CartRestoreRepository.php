@@ -7,47 +7,45 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Model\WebApi;
 
-use Magento\Quote\Api\CartRepositoryInterface;
-use Magento\Framework\Encryption\EncryptorInterface;
-use Magento\Checkout\Model\Session as CheckoutSession;
+use Magento\Authorization\Model\UserContextInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Api\Data\CartInterface;
-use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollectionFactory;
 use Magmodules\Reloadify\Api\WebApi\CartRestoreInterface;
+use Magmodules\Reloadify\Service\Cart\QuoteRestorer;
 
 class CartRestoreRepository implements CartRestoreInterface
 {
     public function __construct(
-        private readonly EncryptorInterface $encryptor,
-        private readonly CartRepositoryInterface $quoteRepository,
-        private readonly CheckoutSession $checkoutSession,
-        private readonly OrderCollectionFactory $orderCollectionFactory
+        private readonly QuoteRestorer $quoteRestorer,
+        private readonly UserContextInterface $userContext
     ) {
     }
 
+    /**
+     * @inheritdoc
+     */
     public function restore(string $encryptedId): CartInterface
     {
-        $quoteId = $this->encryptor->decrypt($encryptedId);
-        $quote = $this->quoteRepository->get((int)$quoteId);
-        if (!$quote->getIsActive() && !$this->isQuoteConvertedToOrder((int)$quoteId)) {
-            $quote->setIsActive(true);
-            $this->quoteRepository->save($quote);
-        }
-        $this->checkoutSession->replaceQuote($quote);
+        $quote = $this->quoteRestorer->load($encryptedId);
 
-        return $quote;
+        if (!$quote->getIsActive() && $this->quoteRestorer->isQuoteConvertedToOrder((int)$quote->getId())) {
+            throw new LocalizedException(__('An order has already been placed for this quote.'));
+        }
+
+        return $this->quoteRestorer->restore($quote, $this->getCurrentCustomerId());
     }
 
     /**
-     * Checks if a quote was already converted to an order.
+     * Customer ID behind the current request, 0 for an anonymous or integration caller.
      *
-     * @param int $quoteId
-     * @return bool
+     * @return int
      */
-    private function isQuoteConvertedToOrder(int $quoteId): bool
+    private function getCurrentCustomerId(): int
     {
-        $collection = $this->orderCollectionFactory->create()
-            ->addFieldToFilter('quote_id', $quoteId);
+        if ($this->userContext->getUserType() === UserContextInterface::USER_TYPE_CUSTOMER) {
+            return (int)$this->userContext->getUserId();
+        }
 
-        return $collection->getSize() > 0;
+        return 0;
     }
 }
