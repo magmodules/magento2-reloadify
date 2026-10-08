@@ -205,16 +205,28 @@ class Variants
         }
 
         if ($type == 'select' || $type == 'multiselect') {
-            try {
-                if ($dropdownValue = $product->getAttributeText($attribute)) {
-                    return $dropdownValue;
-                }
-            } catch (\Throwable $exception) {
-                // Fall back to the raw attribute data below
+            if ($dropdownValue = $this->getAttributeText($product, $attribute)) {
+                return $dropdownValue;
             }
         }
 
         return $product->getData($attribute);
+    }
+
+    /**
+     * The option label(s) for a select attribute, or null when the raw attribute data has to be used instead
+     *
+     * @param mixed $product
+     * @param string $attribute
+     * @return mixed
+     */
+    private function getAttributeText($product, $attribute)
+    {
+        try {
+            return $product->getAttributeText($attribute);
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     /**

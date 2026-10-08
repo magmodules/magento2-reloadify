@@ -142,7 +142,7 @@ class Stock
     /**
      * Get MSI stock channels
      *
-     * @return array[]
+     * @return int[]
      */
     private function getChannels(): array
     {
@@ -164,7 +164,7 @@ class Stock
     /**
      * Collect MSI stock data
      *
-     * @param array[] $channels
+     * @param int[] $channels
      * @return array[]
      */
     private function collectMsi(array $channels): array
