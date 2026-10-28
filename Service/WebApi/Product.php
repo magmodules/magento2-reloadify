@@ -24,6 +24,7 @@ use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollect
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
+use Magmodules\Reloadify\Service\ProductData\Price;
 
 /**
  * Product web API service class
@@ -85,6 +86,10 @@ class Product
      * @var CatalogProductMediaConfig
      */
     private $catalogProductMediaConfig;
+    /**
+     * @var Price
+     */
+    private $price;
 
     private $mediaPath = '';
 
@@ -101,6 +106,7 @@ class Product
      * @param AttributeRepositoryInterface $attributeRepository
      * @param GalleryReadHandler $galleryReadHandler
      * @param CatalogProductMediaConfig $catalogProductMediaConfig
+     * @param Price $price
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
@@ -112,7 +118,8 @@ class Product
         StoreManagerInterface $storeManager,
         AttributeRepositoryInterface $attributeRepository,
         GalleryReadHandler $galleryReadHandler,
-        CatalogProductMediaConfig $catalogProductMediaConfig
+        CatalogProductMediaConfig $catalogProductMediaConfig,
+        Price $price
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->reviewCollectionFactory = $reviewCollectionFactory;
@@ -124,6 +131,7 @@ class Product
         $this->attributeRepository = $attributeRepository;
         $this->galleryReadHandler = $galleryReadHandler;
         $this->catalogProductMediaConfig = $catalogProductMediaConfig;
+        $this->price = $price;
     }
 
     /**
@@ -153,12 +161,22 @@ class Product
         $descriptionType = $this->getAttributeType($description);
 
         $extraFields = $this->configRepository->getExtraFields();
+        $hasRenderedPrice = false;
         foreach ($extraFields as $key => $extraAttribute) {
+            if (isset($extraAttribute['price_source'])) {
+                $hasRenderedPrice = true;
+                continue;
+            }
             $extraAttributeType = $this->getAttributeType($extraAttribute['source']);
             $extraFields[$key]['type'] = $extraAttributeType;
         }
 
+        $indexPrices = $hasRenderedPrice
+            ? $this->price->getIndexPrices($collection->getColumnValues('entity_id'), $storeId)
+            : [];
+
         foreach ($collection as $product) {
+            $price = $this->price->execute($product, $product->getPrice(), $storeId);
             $productData = [
                 "id"                   => $product->getId(),
                 "name"                 => $this->getAttributeValue($product, $name, $nameType),
@@ -167,6 +185,8 @@ class Product
                 "short_description"    => $product->getShortDescription(),
                 "description"          => $this->getAttributeValue($product, $description, $descriptionType),
                 "price"                => $product->getPrice(),
+                "price_incl"           => $price['incl'],
+                "price_excl"           => $price['excl'],
                 "url"                  => $this->getUrl($product->getProductUrl(), $storeId),
                 "sku"                  => $this->getAttributeValue($product, $sku, $skuType),
                 "brand"                => $this->getAttributeValue($product, $brand, $brandType),
@@ -181,6 +201,11 @@ class Product
                 "updated_at"           => $product->getUpdatedAt()
             ];
             foreach ($extraFields as $extraField) {
+                if (isset($extraField['price_source'])) {
+                    $productData[$extraField['label']] =
+                        $indexPrices[$product->getId()][$extraField['price_source']] ?? null;
+                    continue;
+                }
                 $productData[$extraField['label']] = $this->getAttributeValue(
                     $product,
                     $extraField['source'],
