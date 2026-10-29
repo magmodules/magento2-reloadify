@@ -132,26 +132,28 @@ class Order
             ];
             if ($shipAddress = $order->getShippingAddress()) {
                 $shipData = $shipAddress->getData();
-                unset($shipData['entity_id'],
+                unset(
+                    $shipData['entity_id'],
                     $shipData['parent_id'],
                     $shipData['quote_address_id'],
                     $shipData['customer_address_id']
                 );
                 $shipData = $this->removeExcludedKeys($shipData, $excludedOrderKeys);
                 $orderData['shipping_address'] = array_filter($shipData, function ($value) {
-                    return !is_null($value);
+                    return $value !== null;
                 });
             }
             if ($billAddress = $order->getBillingAddress()) {
                 $billData = $billAddress->getData();
-                unset($billData['entity_id'],
+                unset(
+                    $billData['entity_id'],
                     $billData['parent_id'],
                     $billData['quote_address_id'],
                     $billData['customer_address_id']
                 );
                 $billData = $this->removeExcludedKeys($billData, $excludedOrderKeys);
                 $orderData['billing_address'] = array_filter($billData, function ($value) {
-                    return !is_null($value);
+                    return $value !== null;
                 });
             }
             $data[] = $orderData;
@@ -236,13 +238,13 @@ class Order
      */
     private function getExcludedOrderKeys(array $excludedFields): array
     {
-        $keys = [];
+        $keys = [[]];
         foreach ($excludedFields as $field) {
             if (isset(self::EXCLUDED_FIELD_MAP[$field])) {
-                $keys = array_merge($keys, self::EXCLUDED_FIELD_MAP[$field]);
+                $keys[] = self::EXCLUDED_FIELD_MAP[$field];
             }
         }
-        return $keys;
+        return array_merge(...$keys);
     }
 
     /**
