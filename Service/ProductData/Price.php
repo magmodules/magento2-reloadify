@@ -17,6 +17,7 @@ use Magento\Tax\Api\Data\TaxClassKeyInterface;
 use Magento\Tax\Api\Data\TaxClassKeyInterfaceFactory;
 use Magento\Tax\Api\TaxCalculationInterface;
 use Magento\Tax\Model\Config as TaxConfig;
+use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
 
 /**
  * Service class for store view specific price data
@@ -57,6 +58,16 @@ class Price
      * @var StoreManagerInterface
      */
     private $storeManager;
+    /**
+     * @var LogRepository
+     */
+    private $logRepository;
+    /**
+     * Store ids for which a failed tax calculation has already been logged
+     *
+     * @var array
+     */
+    private $loggedStores = [];
 
     /**
      * Price constructor.
@@ -68,6 +79,7 @@ class Price
      * @param TaxConfig                        $taxConfig
      * @param ProductCollectionFactory         $productCollectionFactory
      * @param StoreManagerInterface            $storeManager
+     * @param LogRepository                    $logRepository
      */
     public function __construct(
         TaxCalculationInterface $taxCalculation,
@@ -76,7 +88,8 @@ class Price
         TaxClassKeyInterfaceFactory $taxClassKeyFactory,
         TaxConfig $taxConfig,
         ProductCollectionFactory $productCollectionFactory,
-        StoreManagerInterface $storeManager
+        StoreManagerInterface $storeManager,
+        LogRepository $logRepository
     ) {
         $this->taxCalculation = $taxCalculation;
         $this->quoteDetailsFactory = $quoteDetailsFactory;
@@ -85,14 +98,16 @@ class Price
         $this->taxConfig = $taxConfig;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->storeManager = $storeManager;
+        $this->logRepository = $logRepository;
     }
 
     /**
      * Get the price incl. and excl. tax for a store view
      *
-     * Uses the default tax destination and the "NOT LOGGED IN" customer tax class of the
-     * store view, as the storefront does for guests. Falls back to the raw price when the
-     * tax calculation fails, so a tax misconfiguration does not break the whole request.
+     * Uses the default tax destination of the store view and the tax class of its default
+     * customer group, as the storefront does for guests. Falls back to the raw price when the
+     * tax calculation fails, so a tax misconfiguration does not break the whole request;
+     * the failure is logged once per store view.
      *
      * @param Product    $product
      * @param mixed      $price
@@ -132,6 +147,18 @@ class Price
                 'excl' => $taxDetailsItem->getPrice()
             ];
         } catch (\Throwable $exception) {
+            if (!isset($this->loggedStores[$storeId])) {
+                $this->loggedStores[$storeId] = true;
+                $this->logRepository->addErrorLog(
+                    'price tax calculation',
+                    sprintf(
+                        'Store %s, SKU %s: %s Falling back to stored price.',
+                        $storeId,
+                        $product->getSku(),
+                        rtrim($exception->getMessage(), '.') . '.'
+                    )
+                );
+            }
             return ['incl' => $price, 'excl' => $price];
         }
     }
@@ -162,6 +189,10 @@ class Price
                     $this->storeManager->getStore($storeId)->getWebsiteId()
                 );
         } catch (\Throwable $exception) {
+            $this->logRepository->addErrorLog(
+                'price index',
+                sprintf('Store %s: %s', $storeId, $exception->getMessage())
+            );
             return [];
         }
 

@@ -149,6 +149,7 @@ class Variants
                 continue;
             }
             $price = $this->price->execute($product, $product->getPrice(), $storeId);
+            $specialPrice = $this->price->execute($product, $product->getSpecialPrice(), $storeId);
             $data[] = [
                 "id"           => $product->getId(),
                 "title"        => $this->getAttributeValue($product, $name, $nameType),
@@ -160,7 +161,7 @@ class Variants
                 "price_excl"   => $price['excl'],
                 "price_incl"   => $price['incl'],
                 "unit_price"   => $product->getPrice(),
-                "special_price" => $product->getSpecialPrice(),
+                "special_price" => $specialPrice['incl'],
                 "sku"          => $this->getAttributeValue($product, $sku, $skuType),
                 "brand"        => $this->getAttributeValue($product, $brand, $brandType),
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
