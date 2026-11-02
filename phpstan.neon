@@ -7,5 +7,5 @@ parameters:
     fileExtensions:
         - php
         - phtml
-    excludePaths:
+    excludes_analyse:
         - Test/*
