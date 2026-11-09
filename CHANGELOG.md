@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.17.2]
+
+**Features:**
+* Added store view specific prices incl./excl. tax (`price_incl` / `price_excl`) to the products and variants endpoints, calculated with the tax rate of each store view.
+
+**Bugfixes:**
+* Fixed MSI stock collection for custom stocks ("Unknown column inventory_stock_N.product_id" error and default stock qty reported for custom stocks).
+* Fixed rendered price extra fields (price, min_price, max_price) breaking the products endpoint.
+* Variants endpoint now converts `special_price` per store view.
+
+**Compatibility:**
+* Magento 2.3.x & Magento 2.4.x
+
 ## [1.17.1]
 
 **Bugfixes:**
