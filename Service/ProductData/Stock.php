@@ -117,22 +117,24 @@ class Stock
      */
     private function getMsiStock(): array
     {
-        $channels = $this->getChannels();
-        $stockData = $this->collectMsi($channels);
         $result = $this->getNoMsiStock(true);
-        foreach ($stockData as $value) {
-            foreach ($channels as $channel) {
-                if (!array_key_exists($value['product_id'], $result)) {
+        $websiteStocks = $this->getChannels();
+        if (!$websiteStocks) {
+            return $result;
+        }
+        $stockData = $this->collectMsi(array_unique(array_values($websiteStocks)));
+        foreach ($stockData as $productId => $stocks) {
+            if (!array_key_exists($productId, $result)) {
+                continue;
+            }
+            foreach ($websiteStocks as $websiteId => $stockId) {
+                if (!isset($stocks[$stockId])) {
                     continue;
                 }
-                $qty = $result[$value['product_id']]['qty'];
-                $reserved = $result[$value['product_id']]['reserved'] * -1;
-                $salableQty = max($qty, $qty - $reserved);
-                $result[$value['product_id']]
-                ['msi']
-                [$value['website_id']] = [
-                    'qty' => $value[sprintf('quantity_%s', $channel)],
-                    'salable_qty' => $salableQty
+                $qty = $stocks[$stockId]['qty'];
+                $result[$productId]['msi'][$websiteId] = [
+                    'qty' => $qty,
+                    'salable_qty' => (int)max(0, $qty + $stocks[$stockId]['reserved'])
                 ];
             }
         }
@@ -140,76 +142,100 @@ class Stock
     }
 
     /**
-     * Get MSI stock channels
+     * Get MSI stock id per website
      *
-     * @return array[]
+     * @return int[] [website_id => stock_id]
      */
     private function getChannels(): array
     {
-        $selectChannels = $this->resource->getConnection()
-            ->select()
+        $connection = $this->resource->getConnection();
+        $selectChannels = $connection->select()
             ->from(
-                $this->resource->getTableName('inventory_stock_sales_channel'),
-                [
-                    'stock_id'
-                ]
-            )->where('type = ?', 'website');
-        $channels = array_unique($this->resource->getConnection()->fetchCol($selectChannels));
-        if (count($channels) == 1 && reset($channels) != 1) {
-            $channels = [1];
-        }
-        return $channels;
+                ['channel' => $this->resource->getTableName('inventory_stock_sales_channel')],
+                []
+            )->join(
+                ['website' => $this->resource->getTableName('store_website')],
+                'website.code = channel.code',
+                ['website_id']
+            )->columns(['stock_id' => 'channel.stock_id'])
+            ->where('channel.type = ?', 'website');
+        return array_map('intval', $connection->fetchPairs($selectChannels));
     }
 
     /**
-     * Collect MSI stock data
+     * Collect MSI stock data from the stock index tables, joined by sku
      *
-     * @param array[] $channels
-     * @return array[]
+     * Only the default stock view contains product_id and website_id,
+     * custom stock tables only have sku, quantity and is_salable.
+     *
+     * @param int[] $stockIds
+     * @return array[] [product_id => [stock_id => [qty, reserved]]]
      */
-    private function collectMsi(array $channels): array
+    private function collectMsi(array $stockIds): array
     {
-        $channel = min($channels);
-        $channels = array_flip($channels);
-        unset($channels[$channel]);
-        $channels = array_flip($channels);
-        $stockTablePrimary = $this->resource->getTableName(sprintf('inventory_stock_%s', $channel));
-        if (!$this->resource->getConnection()->isTableExists($stockTablePrimary)) {
+        $connection = $this->resource->getConnection();
+        $selectStock = $connection->select()
+            ->from(
+                ['product' => $this->resource->getTableName('catalog_product_entity')],
+                ['entity_id']
+            )->where('product.entity_id IN (?)', $this->entityIds);
+
+        $joined = [];
+        foreach ($stockIds as $stockId) {
+            $stockTable = $this->resource->getTableName(sprintf('inventory_stock_%s', $stockId));
+            if (!$connection->isTableExists($stockTable)) {
+                continue;
+            }
+            $alias = sprintf('stock_%s', $stockId);
+            $selectStock->joinLeft(
+                [$alias => $stockTable],
+                "{$alias}.sku = product.sku",
+                [sprintf('quantity_%s', $stockId) => 'quantity']
+            );
+            $reservationAlias = sprintf('reservation_%s', $stockId);
+            $selectStock->joinLeft(
+                [$reservationAlias => $this->getReservationSelect($stockId)],
+                "{$reservationAlias}.sku = product.sku",
+                [sprintf('reserved_%s', $stockId) => 'quantity']
+            );
+            $joined[] = $stockId;
+        }
+        if (!$joined) {
             return [];
         }
-        $selectStock = $this->resource->getConnection()
-            ->select()
-            ->from(
-                $stockTablePrimary,
-                [
-                    'product_id',
-                    'website_id',
-                    sprintf('quantity_%s', $channel) => 'quantity'
-                ]
-            );
-        foreach ($channels as $channel) {
-            $stockTable = sprintf('inventory_stock_%s', $channel);
-            if (!$this->resource->getConnection()->tableColumnExists($stockTable, 'website_id')) {
-                $selectStock->joinLeft(
-                    $stockTable,
-                    "{$stockTable}.sku = {$stockTablePrimary}.sku",
-                    [
-                        sprintf('quantity_%s', $channel) => 'quantity'
-                    ]
-                );
-            } else {
-                $selectStock->joinLeft(
-                    $stockTable,
-                    "{$stockTable}.website_id = {$stockTablePrimary}.website_id and
-                 {$stockTable}.product_id = {$stockTablePrimary}.product_id",
-                    [
-                        sprintf('quantity_%s', $channel) => 'quantity'
-                    ]
-                );
+
+        $result = [];
+        foreach ($connection->fetchAll($selectStock) as $row) {
+            foreach ($joined as $stockId) {
+                if ($row[sprintf('quantity_%s', $stockId)] === null) {
+                    continue;
+                }
+                $result[$row['entity_id']][$stockId] = [
+                    'qty' => (int)$row[sprintf('quantity_%s', $stockId)],
+                    'reserved' => (int)$row[sprintf('reserved_%s', $stockId)]
+                ];
             }
         }
-        $selectStock->where("{$stockTablePrimary}.product_id IN (?)", $this->entityIds);
-        return $this->resource->getConnection()->fetchAll($selectStock);
+        return $result;
+    }
+
+    /**
+     * Get summed reservations per sku, optionally limited to one stock
+     *
+     * @param int|null $stockId
+     * @return \Magento\Framework\DB\Select
+     */
+    private function getReservationSelect(?int $stockId = null)
+    {
+        $select = $this->resource->getConnection()->select()
+            ->from(
+                $this->resource->getTableName('inventory_reservation'),
+                ['sku', 'quantity' => 'SUM(quantity)']
+            )->group('sku');
+        if ($stockId !== null) {
+            $select->where('stock_id = ?', $stockId);
+        }
+        return $select;
     }
 
     /**
@@ -251,7 +277,7 @@ class Stock
             );
         if ($addMsi) {
             $select->joinLeft(
-                ['inventory_reservation' => $this->resource->getTableName('inventory_reservation')],
+                ['inventory_reservation' => $this->getReservationSelect()],
                 'inventory_reservation.sku = catalog_product_entity.sku',
                 ['reserved' => 'COALESCE(inventory_reservation.quantity, 0)']
             );

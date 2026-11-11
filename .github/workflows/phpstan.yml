@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - '**/*.php'
+      - '**/*.phtml'
       - '**/*.xml'
       - 'composer.json'
 
@@ -12,19 +13,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - PHP_VERSION: php74-fpm
-            MAGENTO_VERSION: 2.4.4-p13
           - PHP_VERSION: php81-fpm
             MAGENTO_VERSION: 2.4.6-p4
           - PHP_VERSION: php83-fpm
             MAGENTO_VERSION: 2.4.7
           - PHP_VERSION: php84-fpm
             MAGENTO_VERSION: 2.4.8-p4
-          - PHP_VERSION: php84-fpm
-            MAGENTO_VERSION: 2.4.9
           - PHP_VERSION: php85-fpm
             MAGENTO_VERSION: 2.4.9
+
     name: PHP ${{ matrix.PHP_VERSION }} Magento ${{ matrix.MAGENTO_VERSION }}
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,17 +31,67 @@ jobs:
       - name: Start Docker
         run: docker run --detach --name magento-project-community-edition michielgerritsen/magento-project-community-edition:${{ matrix.PHP_VERSION }}-magento${{ matrix.MAGENTO_VERSION }}
 
-      - name: Create branch for Composer and remove version from composer.json
-        run: git checkout -b continuous-integration-test-branch && sed -i '/version/d' ./composer.json
+      - name: Resolve package and module name
+        env:
+          GH_TOKEN: ${{ secrets.REPO_TOKEN }}
+        run: |
+          echo "COMPOSER_NAME=$(jq -r .name composer.json)" >> "$GITHUB_ENV"
+          echo "MODULE_DIR=$(basename "$PWD")" >> "$GITHUB_ENV"
+          echo "MODULE_NAME=$(grep -oE "'[A-Za-z0-9]+_[A-Za-z0-9]+'" registration.php | head -1 | tr -d "'")" >> "$GITHUB_ENV"
+
+          # Accounting modules build on the private accounting-base: pick the newest tag of the
+          # minor line composer.json asks for (~3.0.0 -> 3.0.x), falling back to the default branch.
+          CONSTRAINT=$(jq -r '.require["magmodules/magento2-accounting-base"] // empty' composer.json)
+          if [ -n "$CONSTRAINT" ]; then
+            LINE=$(echo "$CONSTRAINT" | grep -oE '[0-9]+\.[0-9]+' | head -1)
+            REF=$(gh api repos/magmodules/magento2-accounting-base/tags --paginate --jq '.[].name' \
+              | grep -E "^${LINE}\." | sort -V | tail -1)
+            echo "ACCOUNTING_BASE_REF=${REF:-master}" >> "$GITHUB_ENV"
+            echo "accounting-base: $CONSTRAINT -> ${REF:-master}"
+          fi
+
+      - name: Check out accounting-base
+        if: env.ACCOUNTING_BASE_REF != ''
+        uses: actions/checkout@v4
+        with:
+          repository: magmodules/magento2-accounting-base
+          ref: ${{ env.ACCOUNTING_BASE_REF }}
+          token: ${{ secrets.REPO_TOKEN }}
+          path: accounting-base
+
+      - name: Remove version from composer.json
+        run: sed -i '/version/d' ./composer.json
 
       - name: Upload our code into the docker container
-        run: docker cp $(pwd) magento-project-community-edition:/data/extensions/
+        run: |
+          if [ -n "$ACCOUNTING_BASE_REF" ]; then
+            docker cp accounting-base magento-project-community-edition:/data/extensions/magento2-accounting-base
+            rm -rf accounting-base
+          fi
+          docker cp $(pwd) magento-project-community-edition:/data/extensions/
 
       - name: Install the extensions in Magento
-        run: docker exec magento-project-community-edition composer require magmodules/magento2-reloadify:@dev --no-plugins
+        run: docker exec magento-project-community-edition ./install-composer-package $COMPOSER_NAME:@dev
 
       - name: Activate the extension
-        run: docker exec magento-project-community-edition ./retry "php bin/magento module:enable Magmodules_Reloadify && php bin/magento setup:upgrade && php bin/magento setup:di:compile"
+        run: docker exec magento-project-community-edition ./retry "php bin/magento module:enable $MODULE_NAME ${ACCOUNTING_BASE_REF:+Magmodules_AccountingBase} && php bin/magento setup:upgrade && php bin/magento setup:di:compile"
 
+      # Modules with a test suite keep the PHPStan Magento extension in Test/vendor, next to PHPUnit
+      # (see Test/composer.json). Its lock file needs PHP 8.2 or newer, so those modules skip the
+      # analysis on 8.1; install, setup:upgrade and di:compile above still prove 8.1 support.
+      - name: Install the analysis dependencies
+        if: matrix.PHP_VERSION != 'php81-fpm'
+        run: |
+          [ -f Test/composer.json ] || { echo "No Test/composer.json, nothing to install"; exit 0; }
+          docker exec magento-project-community-edition /bin/bash -c "cd /data/extensions/$MODULE_DIR/Test && composer install --no-interaction --prefer-dist --no-progress"
+
+      # Runs from the Magento root on purpose: the extension resolves Magento's own classes, and
+      # from inside the module directory it cannot find them.
       - name: Run PHPStan
-        run: docker exec magento-project-community-edition /bin/bash -c "./vendor/bin/phpstan analyse --no-progress -c /data/extensions/*/phpstan.neon /data/extensions"
+        run: |
+          if [ "${{ matrix.PHP_VERSION }}" = "php81-fpm" ] && [ -f Test/composer.json ]; then
+            echo "Skipped on PHP 8.1: the analysis dependencies need 8.2 or newer"; exit 0
+          fi
+          AUTOLOAD=""
+          [ -f Test/composer.json ] && AUTOLOAD="-a extensions/$MODULE_DIR/Test/vendor/autoload.php"
+          docker exec magento-project-community-edition /bin/bash -c "cd /data && ./vendor/bin/phpstan analyse --no-progress $AUTOLOAD -c extensions/$MODULE_DIR/phpstan.neon extensions/$MODULE_DIR"
