@@ -1,0 +1,40 @@
+name: PHP Compatibility
+on:
+  pull_request:
+    paths:
+      - '**/*.php'
+      - '**/*.phtml'
+
+jobs:
+  php-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+          coverage: none
+
+      # dev-develop carries the PHP 8.4/8.5 sniffs; pinned to a commit until a 10.x release ships them.
+      - name: Install PHPCompatibility
+        run: |
+          mkdir -p "$RUNNER_TEMP/phpcs"
+          cd "$RUNNER_TEMP/phpcs"
+          composer init --no-interaction --name=tmp/phpcs
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer config allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
+          composer require --no-interaction --no-progress \
+            "phpcompatibility/php-compatibility:dev-develop#5399b92e23426c27af3b2ae55778817f88499530"
+
+      # testVersion: lower bound = composer.json require.php, upper bound = newest PHP in the phpstan.yml matrix.
+      - name: Run PHPCompatibility
+        run: |
+          "$RUNNER_TEMP/phpcs/vendor/bin/phpcs" \
+            --standard=PHPCompatibility \
+            --runtime-set testVersion 8.1-8.5 \
+            --extensions=php,phtml \
+            --ignore='*/vendor/*,*/node_modules/*' \
+            -s .
