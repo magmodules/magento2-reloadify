@@ -15,6 +15,7 @@ use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
+use Magmodules\Reloadify\Service\ProductData\Price;
 use Magmodules\Reloadify\Service\ProductData\Stock;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Framework\UrlInterface;
@@ -54,6 +55,10 @@ class Variants
      */
     private $stock;
     /**
+     * @var Price
+     */
+    private $price;
+    /**
      * @var ConfigRepository
      */
     private $configRepository;
@@ -88,6 +93,7 @@ class Variants
      * @param CollectionProcessorInterface $collectionProcessor
      * @param StoreManagerInterface        $storeManager
      * @param AttributeRepositoryInterface $attributeRepository
+     * @param Price                        $price
      */
     public function __construct(
         ProductCollectionFactory $productsCollectionFactory,
@@ -96,7 +102,8 @@ class Variants
         Stock $stock,
         CollectionProcessorInterface $collectionProcessor,
         StoreManagerInterface $storeManager,
-        AttributeRepositoryInterface $attributeRepository
+        AttributeRepositoryInterface $attributeRepository,
+        Price $price
     ) {
         $this->productsCollectionFactory = $productsCollectionFactory;
         $this->resourceConnection = $resourceConnection;
@@ -105,6 +112,7 @@ class Variants
         $this->collectionProcessor = $collectionProcessor;
         $this->storeManager = $storeManager;
         $this->attributeRepository = $attributeRepository;
+        $this->price = $price;
     }
 
     /**
@@ -140,6 +148,8 @@ class Variants
             if (!isset($productIds[$product->getId()])) {
                 continue;
             }
+            $price = $this->price->execute($product, $product->getPrice(), $storeId);
+            $specialPrice = $this->price->execute($product, $product->getSpecialPrice(), $storeId);
             $data[] = [
                 "id"           => $product->getId(),
                 "title"        => $this->getAttributeValue($product, $name, $nameType),
@@ -148,10 +158,10 @@ class Variants
                 "ean"          => $this->getAttributeValue($product, $ean, $eanType),
                 "main_image"   => $this->getMainImage($product),
                 "price_cost"   => $product->getCost(),
-                "price_excl"   => $product->getPrice(),
-                "price_incl"   => $product->getPrice(),
+                "price_excl"   => $price['excl'],
+                "price_incl"   => $price['incl'],
                 "unit_price"   => $product->getPrice(),
-                "special_price" => $product->getSpecialPrice(),
+                "special_price" => $specialPrice['incl'],
                 "sku"          => $this->getAttributeValue($product, $sku, $skuType),
                 "brand"        => $this->getAttributeValue($product, $brand, $brandType),
                 "stock_level"  => $this->getStockLevel($product, $stockData, $websiteId),
@@ -205,16 +215,28 @@ class Variants
         }
 
         if ($type == 'select' || $type == 'multiselect') {
-            try {
-                if ($dropdownValue = $product->getAttributeText($attribute)) {
-                    return $dropdownValue;
-                }
-            } catch (\Throwable $exception) {
-                // Fall back to the raw attribute data below
+            if ($dropdownValue = $this->getAttributeText($product, $attribute)) {
+                return $dropdownValue;
             }
         }
 
         return $product->getData($attribute);
+    }
+
+    /**
+     * The option label(s) for a select attribute, or null when the raw attribute data has to be used instead
+     *
+     * @param mixed $product
+     * @param string $attribute
+     * @return mixed
+     */
+    private function getAttributeText($product, $attribute)
+    {
+        try {
+            return $product->getAttributeText($attribute);
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     /**

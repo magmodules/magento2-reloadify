@@ -104,5 +104,4 @@ class Restore extends Action
     {
         return $resultRedirect->setPath('cms/index/index');
     }
-
 }
