@@ -11,7 +11,6 @@ use Exception;
 use Magento\Backend\Block\Template\Context;
 use Magento\Backend\Block\Widget\Button;
 use Magento\Config\Block\System\Config\Form\Field;
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 use Magmodules\Reloadify\Model\Config\Repository as ConfigRepository;
 
@@ -20,19 +19,10 @@ use Magmodules\Reloadify\Model\Config\Repository as ConfigRepository;
  */
 class VersionCheck extends Field
 {
-
     /**
      * @var string
      */
     protected $_template = 'Magmodules_Reloadify::system/config/button/version.phtml';
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
-     * @var RequestInterface
-     */
-    private $request;
 
     /**
      * VersionCheck constructor.
@@ -42,11 +32,9 @@ class VersionCheck extends Field
      */
     public function __construct(
         Context $context,
-        ConfigRepository $configRepository,
+        private readonly ConfigRepository $configRepository,
         array $data = []
     ) {
-        $this->configRepository = $configRepository;
-        $this->request = $context->getRequest();
         parent::__construct($context, $data);
     }
 
@@ -102,10 +90,11 @@ class VersionCheck extends Field
     {
         $buttonData = ['id' => 'magmodules-reloadify-button_version', 'label' => __('Check for latest versions')];
         try {
-            $button = $this->getLayout()->createBlock(
-                Button::class
-            )->setData($buttonData);
-            return $button->toHtml();
+            return $this->getLayout()->createBlock(
+                Button::class,
+                '',
+                ['data' => $buttonData]
+            )->toHtml();
         } catch (Exception $e) {
             return false;
         }

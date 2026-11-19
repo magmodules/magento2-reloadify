@@ -13,16 +13,16 @@ use Magento\Catalog\Model\Product\Media\Config as CatalogProductMediaConfig;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory as ProductCollectionFactory;
 use Magento\Catalog\Api\Data\ProductAttributeInterface;
+use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\UrlInterface;
+use Magento\GroupedProduct\Model\Product\Type\Grouped;
 use Magento\Review\Model\ResourceModel\Review\CollectionFactory;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Model\RequestLog\Collection as RequestLogCollection;
 use Magmodules\Reloadify\Model\RequestLog\CollectionFactory as RequestLogCollectionFactory;
 use Magento\Catalog\Model\Product\Visibility;
-use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
 use Magmodules\Reloadify\Service\ProductData\Price;
 
@@ -31,7 +31,6 @@ use Magmodules\Reloadify\Service\ProductData\Price;
  */
 class Product
 {
-
     /**
      * Default attribute map output
      */
@@ -47,51 +46,9 @@ class Product
     ];
 
     /**
-     * @var ProductCollectionFactory
-     */
-    private $productsCollectionFactory;
-    /**
-     * @var CollectionFactory
-     */
-    private $reviewCollectionFactory;
-    /**
      * @var RequestLogCollection
      */
     private $requestLogCollection;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
-     * @var CollectionProcessorInterface
-     */
-    private $collectionProcessor;
-    /**
-     * @var Visibility
-     */
-    private $productVisibility;
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-    /**
-     * @var AttributeRepositoryInterface
-     */
-    private $attributeRepository;
-    /**
-     * @var GalleryReadHandler
-     */
-    private $galleryReadHandler;
-    /**
-     * @var CatalogProductMediaConfig
-     */
-    private $catalogProductMediaConfig;
-    /**
-     * @var Price
-     */
-    private $price;
-
-    private $mediaPath = '';
 
     /**
      * Product constructor.
@@ -102,36 +59,24 @@ class Product
      * @param ConfigRepository $configRepository
      * @param CollectionProcessorInterface $collectionProcessor
      * @param Visibility $productVisibility
-     * @param StoreManagerInterface $storeManager
      * @param AttributeRepositoryInterface $attributeRepository
      * @param GalleryReadHandler $galleryReadHandler
      * @param CatalogProductMediaConfig $catalogProductMediaConfig
      * @param Price $price
      */
     public function __construct(
-        ProductCollectionFactory $productsCollectionFactory,
-        CollectionFactory $reviewCollectionFactory,
+        private readonly ProductCollectionFactory $productsCollectionFactory,
+        private readonly CollectionFactory $reviewCollectionFactory,
         RequestLogCollectionFactory $requestLogCollectionFactory,
-        ConfigRepository $configRepository,
-        CollectionProcessorInterface $collectionProcessor,
-        Visibility $productVisibility,
-        StoreManagerInterface $storeManager,
-        AttributeRepositoryInterface $attributeRepository,
-        GalleryReadHandler $galleryReadHandler,
-        CatalogProductMediaConfig $catalogProductMediaConfig,
-        Price $price
+        private readonly ConfigRepository $configRepository,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly Visibility $productVisibility,
+        private readonly AttributeRepositoryInterface $attributeRepository,
+        private readonly GalleryReadHandler $galleryReadHandler,
+        private readonly CatalogProductMediaConfig $catalogProductMediaConfig,
+        private readonly Price $price
     ) {
-        $this->productsCollectionFactory = $productsCollectionFactory;
-        $this->reviewCollectionFactory = $reviewCollectionFactory;
         $this->requestLogCollection = $requestLogCollectionFactory->create();
-        $this->configRepository = $configRepository;
-        $this->collectionProcessor = $collectionProcessor;
-        $this->productVisibility = $productVisibility;
-        $this->storeManager = $storeManager;
-        $this->attributeRepository = $attributeRepository;
-        $this->galleryReadHandler = $galleryReadHandler;
-        $this->catalogProductMediaConfig = $catalogProductMediaConfig;
-        $this->price = $price;
     }
 
     /**
@@ -349,33 +294,6 @@ class Product
     }
 
     /**
-     * Retrieve the base URL for media files for a specific store.
-     *
-     * @param int $storeId The store ID.
-     * @return string The base media URL for the store.
-     */
-    private function getMediaBaseUrl(int $storeId): string
-    {
-        if (!$this->mediaPath) {
-            $this->mediaPath = $this->storeManager->getStore($storeId)
-                ->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
-        }
-
-        return $this->mediaPath;
-    }
-
-    /**
-     * Normalize the image path by ensuring it starts with a forward slash.
-     *
-     * @param string $image The image path from the product.
-     * @return string The normalized image path.
-     */
-    private function normalizeImagePath(string $image): string
-    {
-        return '/' . ltrim($image, '/');
-    }
-
-    /**
      * Returns simple products array for parent product
      *
      * @param ProductModel $product
@@ -388,10 +306,16 @@ class Product
         $childProducts = null;
         switch ($product->getTypeId()) {
             case 'configurable':
-                $childProducts = $product->getTypeInstance()->getUsedProducts($product);
+                $typeInstance = $product->getTypeInstance();
+                if ($typeInstance instanceof Configurable) {
+                    $childProducts = $typeInstance->getUsedProducts($product);
+                }
                 break;
             case 'grouped':
-                $childProducts = $product->getTypeInstance()->getAssociatedProducts($product);
+                $typeInstance = $product->getTypeInstance();
+                if ($typeInstance instanceof Grouped) {
+                    $childProducts = $typeInstance->getAssociatedProducts($product);
+                }
                 break;
         }
 

@@ -12,6 +12,7 @@ use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Model\AbstractModel;
 use Magmodules\Reloadify\Api\RequestLog\Data\DataInterface;
 use Magmodules\Reloadify\Api\RequestLog\Data\DataInterfaceFactory;
 use Magmodules\Reloadify\Api\RequestLog\Data\SearchResultsInterface;
@@ -24,32 +25,6 @@ use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
  */
 class Repository implements RepositoryInterface
 {
-
-    /**
-     * @var SearchResultsInterfaceFactory
-     */
-    private $searchResultFactory;
-
-    /**
-     * @var CollectionFactory
-     */
-    private $collectionFactory;
-
-    /**
-     * @var DataInterfaceFactory
-     */
-    private $dataFactory;
-
-    /**
-     * @var ResourceModel
-     */
-    private $resource;
-
-    /**
-     * @var LogRepository
-     */
-    private $logger;
-
     /**
      * Repository constructor.
      * @param SearchResultsInterfaceFactory $searchResultFactory
@@ -59,17 +34,12 @@ class Repository implements RepositoryInterface
      * @param LogRepository $logger
      */
     public function __construct(
-        SearchResultsInterfaceFactory $searchResultFactory,
-        CollectionFactory $collectionFactory,
-        ResourceModel $resource,
-        DataInterfaceFactory $dataFactory,
-        LogRepository $logger
+        private readonly SearchResultsInterfaceFactory $searchResultFactory,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly ResourceModel $resource,
+        private readonly DataInterfaceFactory $dataFactory,
+        private readonly LogRepository $logger
     ) {
-        $this->searchResultFactory = $searchResultFactory;
-        $this->collectionFactory = $collectionFactory;
-        $this->resource = $resource;
-        $this->dataFactory = $dataFactory;
-        $this->logger = $logger;
     }
 
     /**
@@ -84,8 +54,15 @@ class Repository implements RepositoryInterface
             $exceptionMsg = self::NO_SUCH_ENTITY_EXCEPTION;
             throw new NoSuchEntityException(__($exceptionMsg, $entityId));
         }
-        return $this->dataFactory->create()
-            ->load($entityId);
+        $entity = $this->dataFactory->create();
+        if (!$entity instanceof AbstractModel) {
+            throw new NoSuchEntityException(__(
+                'Unsupported implementation %1.',
+                get_class($entity)
+            ));
+        }
+        $this->resource->load($entity, $entityId);
+        return $entity;
     }
 
     /**
@@ -114,6 +91,12 @@ class Repository implements RepositoryInterface
      */
     public function delete(DataInterface $entity) : bool
     {
+        if (!$entity instanceof AbstractModel) {
+            throw new CouldNotDeleteException(__(
+                'Could not delete the RequestLog: %1',
+                __('Unsupported implementation %1.', get_class($entity))
+            ));
+        }
         try {
             $this->resource->delete($entity);
         } catch (\Exception $exception) {
@@ -142,6 +125,12 @@ class Repository implements RepositoryInterface
     public function save(
         DataInterface $entity
     ) : DataInterface {
+        if (!$entity instanceof AbstractModel) {
+            throw new CouldNotSaveException(__(
+                'Could not save the RequestLog: %1',
+                __('Unsupported implementation %1.', get_class($entity))
+            ));
+        }
         try {
             $this->resource->save($entity);
         } catch (\Exception $exception) {

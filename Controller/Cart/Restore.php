@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Controller\Cart;
 
-use Magento\Backend\Model\View\Result\Redirect;
 use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
@@ -23,23 +23,14 @@ use Magento\Sales\Model\ResourceModel\Order\CollectionFactory as OrderCollection
  */
 class Restore extends Action
 {
-    private EncryptorInterface $encryptor;
-    private CartRepositoryInterface $quoteRepository;
-    private CheckoutSession $checkoutSession;
-    private OrderCollectionFactory $orderCollectionFactory;
-
     public function __construct(
         Context $context,
-        EncryptorInterface $encryptor,
-        CartRepositoryInterface $quoteRepository,
-        CheckoutSession $checkoutSession,
-        OrderCollectionFactory $orderCollectionFactory
+        private readonly EncryptorInterface $encryptor,
+        private readonly CartRepositoryInterface $quoteRepository,
+        private readonly CheckoutSession $checkoutSession,
+        private readonly OrderCollectionFactory $orderCollectionFactory
     ) {
         parent::__construct($context);
-        $this->encryptor = $encryptor;
-        $this->quoteRepository = $quoteRepository;
-        $this->checkoutSession = $checkoutSession;
-        $this->orderCollectionFactory = $orderCollectionFactory;
     }
 
     /**

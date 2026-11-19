@@ -16,27 +16,18 @@ use Magmodules\Reloadify\Api\WebApi\CartRestoreInterface;
 
 class CartRestoreRepository implements CartRestoreInterface
 {
-    private EncryptorInterface $encryptor;
-    private CartRepositoryInterface $quoteRepository;
-    private CheckoutSession $checkoutSession;
-    private OrderCollectionFactory $orderCollectionFactory;
-
     public function __construct(
-        EncryptorInterface $encryptor,
-        CartRepositoryInterface $quoteRepository,
-        CheckoutSession $checkoutSession,
-        OrderCollectionFactory $orderCollectionFactory
+        private readonly EncryptorInterface $encryptor,
+        private readonly CartRepositoryInterface $quoteRepository,
+        private readonly CheckoutSession $checkoutSession,
+        private readonly OrderCollectionFactory $orderCollectionFactory
     ) {
-        $this->encryptor = $encryptor;
-        $this->quoteRepository = $quoteRepository;
-        $this->checkoutSession = $checkoutSession;
-        $this->orderCollectionFactory = $orderCollectionFactory;
     }
 
     public function restore(string $encryptedId): CartInterface
     {
         $quoteId = $this->encryptor->decrypt($encryptedId);
-        $quote = $this->quoteRepository->get($quoteId);
+        $quote = $this->quoteRepository->get((int)$quoteId);
         if (!$quote->getIsActive() && !$this->isQuoteConvertedToOrder((int)$quoteId)) {
             $quote->setIsActive(true);
             $this->quoteRepository->save($quote);

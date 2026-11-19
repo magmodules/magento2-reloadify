@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Service\Test;
 
 use Exception;
-use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Filesystem\Driver\File;
 use Magento\Framework\Serialize\Serializer\Json as JsonSerializer;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
@@ -19,7 +18,6 @@ use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
  */
 class ExtensionVersion
 {
-
     /**
      * Test type
      */
@@ -56,50 +54,19 @@ class ExtensionVersion
     public const SUPPORT_LINK = 'https://www.magmodules.eu/help/magento2/update-extension.html';
 
     /**
-     * @var JsonFactory
-     */
-    private $resultJsonFactory;
-
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-
-    /**
-     * @var JsonSerializer
-     */
-    private $json;
-
-    /**
-     * @var File
-     */
-    private $file;
-    /**
-     * @var LogRepository
-     */
-    private $logRepository;
-
-    /**
      * ExtensionVersion constructor.
      *
-     * @param JsonFactory $resultJsonFactory
      * @param ConfigRepository $configRepository
      * @param LogRepository $logRepository
      * @param JsonSerializer $json
      * @param File $file
      */
     public function __construct(
-        JsonFactory $resultJsonFactory,
-        ConfigRepository $configRepository,
-        LogRepository $logRepository,
-        JsonSerializer $json,
-        File $file
+        private readonly ConfigRepository $configRepository,
+        private readonly LogRepository $logRepository,
+        private readonly JsonSerializer $json,
+        private readonly File $file
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->configRepository = $configRepository;
-        $this->logRepository = $logRepository;
-        $this->json = $json;
-        $this->file = $file;
     }
 
     /**
@@ -112,7 +79,7 @@ class ExtensionVersion
             'test' => self::TEST,
             'visible' => self::VISIBLE
         ];
-        $extensionVersion = preg_replace('/^v/', '', $this->configRepository->getExtensionVersion());
+        $extensionVersion = ltrim($this->configRepository->getExtensionVersion(), 'v');
         try {
             $data = $this->file->fileGetContents(
                 sprintf('https://version.magmodules.eu/%s.json', ConfigRepository::EXTENSION_CODE)
@@ -127,8 +94,14 @@ class ExtensionVersion
             return $result;
         }
         $data = $this->json->unserialize($data);
-        $versions = array_keys($data);
-        $latest = preg_replace('/^v/', '', reset($versions));
+        $versions = is_array($data) ? array_keys($data) : [];
+        if (!$versions) {
+            $this->logRepository->addDebugLog('Extension version test', 'No versions in the version feed.');
+            $result['result_msg'] = self::SUCCESS_MSG;
+            $result += ['result_code' => 'success'];
+            return $result;
+        }
+        $latest = ltrim((string)reset($versions), 'v');
 
         if (version_compare($latest, $extensionVersion) == self::EXPECTED) {
             $result['result_msg'] = self::SUCCESS_MSG;

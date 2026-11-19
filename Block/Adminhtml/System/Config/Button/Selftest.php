@@ -8,10 +8,8 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Block\Adminhtml\System\Config\Button;
 
 use Exception;
-use Magento\Backend\Block\Template\Context;
 use Magento\Backend\Block\Widget\Button;
 use Magento\Config\Block\System\Config\Form\Field;
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 
 /**
@@ -24,25 +22,6 @@ class Selftest extends Field
      * @var string
      */
     protected $_template = 'Magmodules_Reloadify::system/config/button/selftest.phtml';
-
-    /**
-     * @var RequestInterface
-     */
-    private $request;
-
-    /**
-     * Credentials constructor.
-     *
-     * @param Context $context
-     * @param array $data
-     */
-    public function __construct(
-        Context $context,
-        array $data = []
-    ) {
-        $this->request = $context->getRequest();
-        parent::__construct($context, $data);
-    }
 
     /**
      * @param AbstractElement $element
@@ -80,10 +59,11 @@ class Selftest extends Field
     {
         $buttonData = ['id' => 'button_test', 'label' => __('Run Self-test')];
         try {
-            $button = $this->getLayout()->createBlock(
-                Button::class
-            )->setData($buttonData);
-            return $button->toHtml();
+            return $this->getLayout()->createBlock(
+                Button::class,
+                '',
+                ['data' => $buttonData]
+            )->toHtml();
         } catch (Exception $e) {
             return false;
         }

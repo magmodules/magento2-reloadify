@@ -22,17 +22,9 @@ class Stock
     ];
 
     /**
-     * @var ResourceConnection
-     */
-    private $resource;
-    /**
      * @var array[]
      */
     private $entityIds;
-    /**
-     * @var ModuleManager
-     */
-    private $moduleManager;
     /**
      * @var string
      */
@@ -47,12 +39,10 @@ class Stock
      * @throws \Exception
      */
     public function __construct(
-        ResourceConnection $resource,
-        ModuleManager $moduleManager,
+        private readonly ResourceConnection $resource,
+        private readonly ModuleManager $moduleManager,
         MetadataPool $metadataPool
     ) {
-        $this->resource = $resource;
-        $this->moduleManager = $moduleManager;
         $this->linkField = $metadataPool->getMetadata(ProductInterface::class)->getLinkField();
     }
 

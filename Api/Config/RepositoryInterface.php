@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Api\Config;
 
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Api\Data\StoreInterface;
 
 /**
@@ -161,6 +162,7 @@ interface RepositoryInterface
      *
      * @param int|null $storeId
      * @return StoreInterface
+     * @throws NoSuchEntityException when the installation has no store view at all
      */
     public function getStore(?int $storeId = null): StoreInterface;
 

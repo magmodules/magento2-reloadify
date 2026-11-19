@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Api\RequestLog;
 
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magmodules\Reloadify\Api\RequestLog\Data\DataInterface;
 use Magmodules\Reloadify\Api\RequestLog\Data\SearchResultsInterface;
 use Magmodules\Reloadify\Model\RequestLog\Collection;
-use Magmodules\Reloadify\Model\RequestLog\DataModel;
 
 /**
  * Interface Repository
@@ -106,7 +106,7 @@ interface RepositoryInterface
      * @param array $dataSet
      * @param bool $getFirst
      *
-     * @return Collection|DataModel
+     * @return Collection|DataObject
      */
     public function getByDataSet(array $dataSet, bool $getFirst = false);
 }

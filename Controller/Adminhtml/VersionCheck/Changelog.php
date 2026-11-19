@@ -24,27 +24,6 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
  */
 class Changelog extends Action
 {
-
-    /**
-     * @var JsonFactory
-     */
-    private $resultJsonFactory;
-
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-
-    /**
-     * @var JsonSerializer
-     */
-    private $json;
-
-    /**
-     * @var File
-     */
-    private $file;
-
     /**
      * Check constructor.
      *
@@ -56,15 +35,11 @@ class Changelog extends Action
      */
     public function __construct(
         Action\Context $context,
-        JsonFactory $resultJsonFactory,
-        ConfigRepository $configRepository,
-        JsonSerializer $json,
-        File $file
+        private readonly JsonFactory $resultJsonFactory,
+        private readonly ConfigRepository $configRepository,
+        private readonly JsonSerializer $json,
+        private readonly File $file
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->configRepository = $configRepository;
-        $this->json = $json;
-        $this->file = $file;
         parent::__construct($context);
     }
 
@@ -79,7 +54,7 @@ class Changelog extends Action
         $current = $latest = preg_replace('/^v/', '', $this->configRepository->getExtensionVersion());
         $data = $this->json->unserialize($result);
         $logs = [];
-        foreach ($data as $version => $log) {
+        foreach (is_array($data) ? $data : [] as $version => $log) {
             if (version_compare((string)$current, (string)$version) == -1) {
                 $logs[$version] = $log;
             }

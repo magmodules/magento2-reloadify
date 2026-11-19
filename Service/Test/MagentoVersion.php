@@ -14,7 +14,6 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
  */
 class MagentoVersion
 {
-
     /**
      * Test type
      */
@@ -48,12 +47,7 @@ class MagentoVersion
     /**
      * Expected result
      */
-    public const EXPECTED = '2.3';
-
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
+    public const EXPECTED = '2.4.4';
 
     /**
      * Repository constructor.
@@ -61,9 +55,8 @@ class MagentoVersion
      * @param ConfigRepository $configRepository
      */
     public function __construct(
-        ConfigRepository $configRepository
+        private readonly ConfigRepository $configRepository
     ) {
-        $this->configRepository = $configRepository;
     }
 
     /**
