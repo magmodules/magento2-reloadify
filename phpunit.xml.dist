@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © Magmodules.eu. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         bootstrap="Test/bootstrap.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="Magmodules Reloadify Unit Tests">
+            <directory>Test/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">Service</directory>
+            <directory suffix=".php">Model</directory>
+            <directory suffix=".php">Controller</directory>
+            <directory suffix=".php">Console</directory>
+            <directory suffix=".php">Plugin</directory>
+            <directory suffix=".php">Logger</directory>
+        </include>
+    </source>
+</phpunit>

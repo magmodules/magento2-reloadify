@@ -3,3 +3,4 @@
 .DS_Store
 .php_cs.dist
 /Test/vendor/
+/.phpunit.cache/

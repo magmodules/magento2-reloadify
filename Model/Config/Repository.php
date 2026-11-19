@@ -327,7 +327,7 @@ class Repository implements ConfigRepositoryInterface
      *
      * @return array
      */
-    public function getStoreValueArray($path, $storeId = null, $scope = null)
+    private function getStoreValueArray($path, $storeId = null, $scope = null)
     {
         $value = $this->getStoreValue($path, $storeId, $scope);
         return $this->getValueArray($value);
@@ -338,7 +338,7 @@ class Repository implements ConfigRepositoryInterface
      *
      * @return array
      */
-    public function getValueArray($value)
+    private function getValueArray($value)
     {
         if (empty($value)) {
             return [];

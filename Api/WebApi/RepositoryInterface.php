@@ -59,7 +59,7 @@ interface RepositoryInterface
      *
      * @return mixed
      */
-    public function getProduct(int $storeId, ?int $entityId): array;
+    public function getProduct(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId
@@ -82,7 +82,7 @@ interface RepositoryInterface
      * @param int|null $entityId
      * @return mixed
      */
-    public function getVariant(int $storeId, ?int $entityId): array;
+    public function getVariant(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId
@@ -111,7 +111,7 @@ interface RepositoryInterface
      * @param int|null $entityId
      * @return mixed
      */
-    public function getCategory(int $storeId, ?int $entityId): array;
+    public function getCategory(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId

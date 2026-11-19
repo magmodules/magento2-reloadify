@@ -68,12 +68,13 @@
     </type>
     <type name="Magmodules\Reloadify\Console\Command\Integration">
         <arguments>
+            <argument name="createToken" xsi:type="object">Magmodules\Reloadify\Service\WebApi\Integration\Proxy</argument>
             <argument name="configRepository" xsi:type="object">Magmodules\Reloadify\Api\Config\RepositoryInterface\Proxy</argument>
         </arguments>
     </type>
 
     <!-- Command line block start -->
-    <type name="Magento\Framework\Console\CommandList">
+    <type name="Magento\Framework\Console\CommandListInterface">
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="ReloadifySelftest" xsi:type="object">Magmodules\Reloadify\Console\Command\Selftest</item>

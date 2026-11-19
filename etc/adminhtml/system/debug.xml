@@ -17,7 +17,7 @@
             <frontend_model>Magmodules\Reloadify\Block\Adminhtml\Magmodules\Heading</frontend_model>
         </field>
         <field id="debug" translate="label" type="select" sortOrder="11" showInDefault="1" showInWebsite="1"
-               showInStore="1">
+               showInStore="1" canRestore="1">
             <label>Debug Mode</label>
             <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
             <config_path>magmodules_reloadify/general/debug</config_path>

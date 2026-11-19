@@ -38,7 +38,7 @@ class Integration implements DataPatchInterface
     /**
      * @return $this
      */
-    public function apply()
+    public function apply(): self
     {
         try {
             $this->createToken->createToken();

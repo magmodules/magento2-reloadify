@@ -25,6 +25,11 @@ use Magento\Framework\Filesystem\Driver\File;
 class Error extends Action
 {
     /**
+     * Authorization level of a basic admin session
+     */
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
+
+    /**
      * Error log file path pattern
      */
     public const ERROR_LOG_FILE = '%s/log/reloadify-error.log';

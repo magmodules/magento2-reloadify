@@ -287,7 +287,8 @@ class Stock
             if ($addMsi) {
                 $result[$value['product_id']] += [
                     'reserved' => (int)$value['reserved'],
-                    'salable_qty' => (int)max($value['qty'], ($value['qty'] - ($value['reserved']) * -1)),
+                    // Reservations of open orders are negative, so they lower the salable quantity
+                    'salable_qty' => (int)max(0, $value['qty'] + $value['reserved']),
                 ];
             }
         }

@@ -25,6 +25,11 @@ use Magento\Framework\Filesystem\Driver\File;
 class Debug extends Action
 {
     /**
+     * Authorization level of a basic admin session
+     */
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
+
+    /**
      * Debug log file path pattern
      */
     public const DEBUG_LOG_FILE = '%s/log/reloadify-debug.log';

@@ -25,6 +25,11 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 class Index extends Action
 {
     /**
+     * Authorization level of a basic admin session
+     */
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
+
+    /**
      * Check constructor.
      *
      * @param Action\Context $context
