@@ -44,4 +44,11 @@ test.describe('Carts', () => {
     const carts = await list(request, `V1/reloadify/cart/${s.carts.guest.id}`);
     expect(carts.map((cart) => Number(cart.id))).toEqual([s.carts.guest.id]);
   });
+
+  test("the single cart route's recovery url points to the storefront, not the admin", async ({ request }) => {
+    const s = state();
+    const [cart] = await list(request, `V1/reloadify/cart/${s.carts.guest.id}`);
+    expect(cart.recovery_url.startsWith(`${BASE_URL}reloadify/cart/restore/?id=`), cart.recovery_url).toBe(true);
+    expect(cart.recovery_url).not.toContain('/admin/');
+  });
 });

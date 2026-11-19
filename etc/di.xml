@@ -57,7 +57,6 @@
                 <item name="phpVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\PhpVersion</item>
                 <item name="extensionStatus" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionStatus</item>
                 <item name="magentoVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\MagentoVersion</item>
-                <item name="extensionVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionVersion</item>
             </argument>
         </arguments>
     </type>
