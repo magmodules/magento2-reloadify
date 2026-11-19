@@ -1,0 +1,16 @@
+{
+  "name": "reloadify-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "End-to-end tests for the Reloadify REST API",
+  "license": "BSD-2-Clause",
+  "scripts": {
+    "test": "playwright test",
+    "docs": "node scripts/e2e-tests-md.mjs > ../../E2E-TESTS.md"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1",
+    "@types/node": "20.17.10",
+    "typescript": "5.7.2"
+  }
+}

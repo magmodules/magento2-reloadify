@@ -352,7 +352,10 @@ class Variants
             return 0;
         }
 
+        // The website's own MSI stock first, then the default stock minus open-order reservations
+        // (MSI installed, website not assigned to a stock), then the plain quantity (no MSI)
         return $productStock['msi'][$websiteId]['salable_qty']
+            ?? $productStock['salable_qty']
             ?? $productStock['qty']
             ?? 0;
     }

@@ -15,7 +15,7 @@ use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Newsletter\Model\Subscriber;
+use Magento\Newsletter\Model\SubscriberFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
@@ -42,7 +42,7 @@ class Profiles
     /**
      * Profiles constructor.
      *
-     * @param Subscriber $subscriber
+     * @param SubscriberFactory $subscriberFactory
      * @param StoreManagerInterface $storeManager
      * @param CustomerRepositoryInterface $customerRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
@@ -53,7 +53,7 @@ class Profiles
      * @param AttributeRepositoryInterface $attributeRepository
      */
     public function __construct(
-        private readonly Subscriber $subscriber,
+        private readonly SubscriberFactory $subscriberFactory,
         private readonly StoreManagerInterface $storeManager,
         private readonly CustomerRepositoryInterface $customerRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
@@ -192,13 +192,19 @@ class Profiles
     }
 
     /**
-     * @param $customer
+     * Whether the customer is subscribed to the newsletter on its own website.
+     *
+     * Every customer gets a subscriber of its own: a shared one keeps the subscription it loaded
+     * before, so a customer without one read as subscribed whenever the customer before was.
+     *
+     * @param \Magento\Customer\Api\Data\CustomerInterface $customer
      *
      * @return bool
      */
     private function isSubscribed($customer): bool
     {
-        $subscription = $this->subscriber->loadByCustomerId($customer->getId());
+        $subscription = $this->subscriberFactory->create()
+            ->loadByCustomer((int)$customer->getId(), (int)$customer->getWebsiteId());
         return $subscription->isSubscribed();
     }
 

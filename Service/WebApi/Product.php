@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magmodules\Reloadify\Service\WebApi;
 
+use Magento\Bundle\Model\Product\Type as Bundle;
 use Magento\Catalog\Model\Product as ProductModel;
 use Magento\Catalog\Model\Product\Gallery\ReadHandler as GalleryReadHandler;
 use Magento\Catalog\Model\Product\Media\Config as CatalogProductMediaConfig;
@@ -317,6 +318,15 @@ class Product
                     $childProducts = $typeInstance->getAssociatedProducts($product);
                 }
                 break;
+            case 'bundle':
+                $typeInstance = $product->getTypeInstance();
+                if ($typeInstance instanceof Bundle) {
+                    $childProducts = $typeInstance->getSelectionsCollection(
+                        $typeInstance->getOptionsIds($product),
+                        $product
+                    );
+                }
+                break;
         }
 
         if ($childProducts) {
@@ -327,7 +337,7 @@ class Product
             }
         }
 
-        return $ids;
+        return array_values(array_unique($ids));
     }
 
     /**
