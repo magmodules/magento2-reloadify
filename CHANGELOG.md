@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.18.0]
+
+**Features:**
+* Added the `GET /V1/reloadify/version` endpoint with the extension and Magento version.
+
+**Improvements:**
+* The minimum PHP version is now 8.1.
+* "Use system value" is now available on all configuration fields.
+* Admin log, selftest and version check actions now require the Reloadify configuration permission.
+* The version check shows that the changelog could not be retrieved instead of failing when the version service is unreachable.
+* Release packages no longer include tests, documentation and development configuration.
+
+**Bugfixes:**
+* Fixed abandoned cart links of logged-in customers opening an empty cart for visitors after Adobe security patch APSB26-73; the products are now copied into a new cart for the visitor and the original cart is closed. The restore-cart Web API route does the same.
+* Fixed the abandoned cart restore link returning an error page when it has no id or the cart was already ordered.
+* Fixed the recovery URL of the `/V1/reloadify/cart/:id` endpoint pointing to the admin instead of the storefront.
+* Fixed the variants endpoint `stock_level` ignoring reservations of open orders for websites that are not assigned to an MSI stock.
+* Fixed the configuration page failing when the Reloadify access token was revoked; running `bin/magento reloadify:integration` now issues a new token.
+* Fixed the profiles endpoint failing on customers without gender, region or street.
+* Fixed the PWA restore URL default not being applied.
+* Fixed profiles reporting a customer without a newsletter subscription as subscribed when the customer before it in the list was subscribed.
+* Fixed the products endpoint returning no `variant_ids` for bundle products.
+* Fixed a JavaScript error on the Reloadify configuration page.
+* Fixed the version check reporting a new version when the installed version is the latest; the self-test no longer repeats that check.
+* Fixed log lines, self-test messages and the changelog being shown as HTML in the admin; they are now shown as text, and the changelog keeps only its own formatting.
+
+**Tests:**
+* PHPStan level 8 and a unit test suite (architecture, price, stock, cart restore and integration token tests).
+* E2E test suite for the REST API, the cart restore link and the admin configuration.
+
+**Compatibility:**
+* Magento 2.4.4 and higher
+* PHP 8.1 and higher
+
 ## [1.17.2]
 
 **Improvements:**
