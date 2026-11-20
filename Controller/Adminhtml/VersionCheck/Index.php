@@ -24,26 +24,10 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
  */
 class Index extends Action
 {
-
     /**
-     * @var JsonFactory
+     * Authorization level of a basic admin session
      */
-    private $resultJsonFactory;
-
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-
-    /**
-     * @var JsonSerializer
-     */
-    private $json;
-
-    /**
-     * @var File
-     */
-    private $file;
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
 
     /**
      * Check constructor.
@@ -56,15 +40,11 @@ class Index extends Action
      */
     public function __construct(
         Action\Context $context,
-        JsonFactory $resultJsonFactory,
-        ConfigRepository $configRepository,
-        JsonSerializer $json,
-        File $file
+        private readonly JsonFactory $resultJsonFactory,
+        private readonly ConfigRepository $configRepository,
+        private readonly JsonSerializer $json,
+        private readonly File $file
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->configRepository = $configRepository;
-        $this->json = $json;
-        $this->file = $file;
         parent::__construct($context);
     }
 
@@ -78,8 +58,10 @@ class Index extends Action
         $current = $latest = preg_replace('/^v/', '', $this->configRepository->getExtensionVersion());
         if ($result) {
             $data = $this->json->unserialize($result);
-            $versions = array_keys($data);
-            $latest = preg_replace('/^v/', '', reset($versions));
+            $versions = is_array($data) ? array_keys($data) : [];
+            if ($versions) {
+                $latest = preg_replace('/^v/', '', (string)reset($versions));
+            }
         }
         $data = [
             'current_verion' => 'v' . $current,

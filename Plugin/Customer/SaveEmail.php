@@ -18,25 +18,14 @@ use Magento\Quote\Api\CartRepositoryInterface;
 class SaveEmail
 {
     /**
-     * @var CheckoutSession
-     */
-    private $checkoutSession;
-    /**
-     * @var CartRepositoryInterface
-     */
-    private $quoteRepository;
-
-    /**
      * SaveEmail constructor.
      * @param CheckoutSession $checkoutSession
      * @param CartRepositoryInterface $quoteRepository
      */
     public function __construct(
-        CheckoutSession $checkoutSession,
-        CartRepositoryInterface $quoteRepository
+        private readonly CheckoutSession $checkoutSession,
+        private readonly CartRepositoryInterface $quoteRepository
     ) {
-        $this->checkoutSession = $checkoutSession;
-        $this->quoteRepository = $quoteRepository;
     }
 
     /**
@@ -45,7 +34,6 @@ class SaveEmail
      * @param Subject $subject
      * @param bool $result
      * @param string $customerEmail
-     * @param null $websiteId
      * @return bool
      */
     public function afterIsEmailAvailable(

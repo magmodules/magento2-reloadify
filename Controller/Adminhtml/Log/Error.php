@@ -16,8 +16,6 @@ use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem\Driver\File;
-use Magento\Framework\Serialize\Serializer\Json as SerializerJson;
-use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 
 /**
  * Class error
@@ -26,55 +24,30 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
  */
 class Error extends Action
 {
+    /**
+     * Authorization level of a basic admin session
+     */
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
 
     /**
      * Error log file path pattern
      */
     public const ERROR_LOG_FILE = '%s/log/reloadify-error.log';
-    /**
-     * @var JsonFactory
-     */
-    private $resultJsonFactory;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
-     * @var DirectoryList
-     */
-    private $dir;
-    /**
-     * @var File
-     */
-    private $file;
-    /**
-     * @var SerializerJson
-     */
-    private $serializerJson;
 
     /**
      * Check constructor.
      *
      * @param Action\Context $context
      * @param JsonFactory $resultJsonFactory
-     * @param ConfigRepository $configRepository
      * @param DirectoryList $dir
      * @param File $file
-     * @param SerializerJson $serializerJson
      */
     public function __construct(
         Action\Context $context,
-        JsonFactory $resultJsonFactory,
-        ConfigRepository $configRepository,
-        DirectoryList $dir,
-        File $file,
-        SerializerJson $serializerJson
+        private readonly JsonFactory $resultJsonFactory,
+        private readonly DirectoryList $dir,
+        private readonly File $file
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->configRepository = $configRepository;
-        $this->dir = $dir;
-        $this->file = $file;
-        $this->serializerJson = $serializerJson;
         parent::__construct($context);
     }
 

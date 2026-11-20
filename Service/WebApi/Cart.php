@@ -23,7 +23,6 @@ use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
  */
 class Cart
 {
-
     /**
      * Default attribute map output
      */
@@ -37,23 +36,6 @@ class Cart
     ];
 
     /**
-     * @var CollectionFactory
-     */
-    private $quoteCollectionFactory;
-    /**
-     * @var EncryptorInterface
-     */
-    private $encryptor;
-    /**
-     * @var CollectionProcessorInterface
-     */
-    private $collectionProcessor;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-
-    /**
      * Cart constructor.
      *
      * @param CollectionFactory $quoteCollectionFactory
@@ -62,15 +44,11 @@ class Cart
      * @param ConfigRepository $configRepository
      */
     public function __construct(
-        CollectionFactory $quoteCollectionFactory,
-        EncryptorInterface $encryptor,
-        CollectionProcessorInterface $collectionProcessor,
-        ConfigRepository $configRepository
+        private readonly CollectionFactory $quoteCollectionFactory,
+        private readonly EncryptorInterface $encryptor,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly ConfigRepository $configRepository
     ) {
-        $this->quoteCollectionFactory = $quoteCollectionFactory;
-        $this->encryptor = $encryptor;
-        $this->collectionProcessor = $collectionProcessor;
-        $this->configRepository = $configRepository;
     }
 
     /**
@@ -91,7 +69,7 @@ class Cart
                 "id"           => $quote->getId(),
                 "currency"     => $quote->getQuoteCurrencyCode(),
                 "price"        => $quote->getGrandTotal(),
-                "recovery_url" => $this->getRecoveryUrl($storeId, (string)$quote->getId()),
+                "recovery_url" => $this->getRecoveryUrl((int)$quote->getStoreId(), (string)$quote->getId()),
                 "profile"      => $this->getProfileData($quote),
                 "product_ids"  => $this->getProducts($quote),
                 "created_at"   => $quote->getCreatedAt(),

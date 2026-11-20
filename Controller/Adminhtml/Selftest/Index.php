@@ -19,16 +19,10 @@ use Magmodules\Reloadify\Api\Selftest\RepositoryInterface as SelftestRepository;
  */
 class Index extends Action
 {
-
     /**
-     * @var JsonFactory
+     * Authorization level of a basic admin session
      */
-    private $resultJsonFactory;
-
-    /**
-     * @var SelftestRepository
-     */
-    private $selftestRepository;
+    public const ADMIN_RESOURCE = 'Magmodules_Reloadify::config';
 
     /**
      * Check constructor.
@@ -39,11 +33,9 @@ class Index extends Action
      */
     public function __construct(
         Action\Context $context,
-        JsonFactory $resultJsonFactory,
-        SelftestRepository $selftestRepository
+        private readonly JsonFactory $resultJsonFactory,
+        private readonly SelftestRepository $selftestRepository
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
-        $this->selftestRepository = $selftestRepository;
         parent::__construct($context);
     }
 

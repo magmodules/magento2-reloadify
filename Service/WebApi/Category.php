@@ -16,7 +16,6 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
-use Magento\Framework\UrlInterface;
 use Magento\Framework\App\Area;
 use Magento\Store\Model\App\Emulation;
 
@@ -25,7 +24,6 @@ use Magento\Store\Model\App\Emulation;
  */
 class Category
 {
-
     /**
      * Default attribute map output
      */
@@ -37,51 +35,19 @@ class Category
     ];
 
     /**
-     * @var CollectionFactory
-     */
-    private $collectionFactory;
-    /**
-     * @var CollectionProcessorInterface
-     */
-    private $collectionProcessor;
-    /**
-     * @var ProductCollectionFactory
-     */
-    private $productCollectionFactory;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
-     * @var UrlInterface
-     */
-    private $urlBuilder;
-    /**
-     * @var Emulation
-     */
-    private $appEmulation;
-
-    /**
      * @param CollectionFactory $collectionFactory
      * @param ProductCollectionFactory $productCollectionFactory
      * @param CollectionProcessorInterface $collectionProcessor
      * @param ConfigRepository $configRepository
-     * @param UrlInterface $urlBuilder
+     * @param Emulation $appEmulation
      */
     public function __construct(
-        CollectionFactory $collectionFactory,
-        ProductCollectionFactory $productCollectionFactory,
-        CollectionProcessorInterface $collectionProcessor,
-        ConfigRepository $configRepository,
-        UrlInterface $urlBuilder,
-        Emulation $appEmulation
+        private readonly CollectionFactory $collectionFactory,
+        private readonly ProductCollectionFactory $productCollectionFactory,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly ConfigRepository $configRepository,
+        private readonly Emulation $appEmulation
     ) {
-        $this->collectionFactory = $collectionFactory;
-        $this->productCollectionFactory = $productCollectionFactory;
-        $this->collectionProcessor = $collectionProcessor;
-        $this->configRepository = $configRepository;
-        $this->urlBuilder = $urlBuilder;
-        $this->appEmulation = $appEmulation;
     }
 
     /**
@@ -175,9 +141,9 @@ class Category
     /**
      * @param int $storeId
      * @param CategoryModel $category
-     * @return array|null
+     * @return array
      */
-    private function getProductIds(int $storeId, CategoryModel $category): ?array
+    private function getProductIds(int $storeId, CategoryModel $category): array
     {
         return $this->productCollectionFactory->create()
             ->setStoreId($storeId)

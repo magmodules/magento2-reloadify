@@ -15,5 +15,5 @@ interface CartRestoreInterface
      * @param string $encryptedId
      * @return \Magento\Quote\Api\Data\CartInterface
      */
-    public function restore(string $encryptedId);
+    public function restore(string $encryptedId): \Magento\Quote\Api\Data\CartInterface;
 }

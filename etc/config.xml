@@ -24,9 +24,9 @@
             <privacy>
                 <exclude_customer_fields/>
             </privacy>
-            <restore_cart>
-                <url>frontend</url>
-            </restore_cart>
+            <pwa>
+                <base_url>frontend</base_url>
+            </pwa>
         </magmodules_reloadify>
     </default>
 </config>

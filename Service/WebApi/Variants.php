@@ -25,7 +25,6 @@ use Magento\Framework\UrlInterface;
  */
 class Variants
 {
-
     /**
      * Default attribute map output
      */
@@ -43,44 +42,15 @@ class Variants
     ];
 
     /**
-     * @var ProductCollectionFactory
-     */
-    private $productsCollectionFactory;
-    /**
-     * @var ResourceConnection
-     */
-    private $resourceConnection;
-    /**
-     * @var Stock
-     */
-    private $stock;
-    /**
-     * @var Price
-     */
-    private $price;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
-     * @var CollectionProcessorInterface
-     */
-    private $collectionProcessor;
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-    /**
-     * @var AttributeRepositoryInterface
-     */
-    private $attributeRepository;
-    /**
      * Frontend input types, keyed by attribute code
      *
      * @var array
      */
     private $attributeTypes = [];
 
+    /**
+     * @var string
+     */
     private $mediaPath = '';
 
     /**
@@ -96,23 +66,15 @@ class Variants
      * @param Price                        $price
      */
     public function __construct(
-        ProductCollectionFactory $productsCollectionFactory,
-        ResourceConnection $resourceConnection,
-        ConfigRepository $configRepository,
-        Stock $stock,
-        CollectionProcessorInterface $collectionProcessor,
-        StoreManagerInterface $storeManager,
-        AttributeRepositoryInterface $attributeRepository,
-        Price $price
+        private readonly ProductCollectionFactory $productsCollectionFactory,
+        private readonly ResourceConnection $resourceConnection,
+        private readonly ConfigRepository $configRepository,
+        private readonly Stock $stock,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly StoreManagerInterface $storeManager,
+        private readonly AttributeRepositoryInterface $attributeRepository,
+        private readonly Price $price
     ) {
-        $this->productsCollectionFactory = $productsCollectionFactory;
-        $this->resourceConnection = $resourceConnection;
-        $this->configRepository = $configRepository;
-        $this->stock = $stock;
-        $this->collectionProcessor = $collectionProcessor;
-        $this->storeManager = $storeManager;
-        $this->attributeRepository = $attributeRepository;
-        $this->price = $price;
     }
 
     /**
@@ -299,10 +261,10 @@ class Variants
         ?SearchCriteriaInterface $searchCriteria = null
     ): Collection {
         $productIds = $this->getChildProducts($extra['entity_id']);
-        $collection = $this->productsCollectionFactory->create()
-            ->addAttributeToSelect('*')
-            ->addFieldToFilter('entity_id', ['in' => array_keys($productIds)])
-            ->setStore($storeId);
+        $collection = $this->productsCollectionFactory->create();
+        $collection->addAttributeToSelect('*')
+            ->addFieldToFilter('entity_id', ['in' => array_keys($productIds)]);
+        $collection->setStore($storeId);
 
         $collection = $this->applyFilter($collection, $extra['filter']);
 
@@ -390,7 +352,10 @@ class Variants
             return 0;
         }
 
+        // The website's own MSI stock first, then the default stock minus open-order reservations
+        // (MSI installed, website not assigned to a stock), then the plain quantity (no MSI)
         return $productStock['msi'][$websiteId]['salable_qty']
+            ?? $productStock['salable_qty']
             ?? $productStock['qty']
             ?? 0;
     }

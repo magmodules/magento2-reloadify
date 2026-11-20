@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magmodules\Reloadify\Api\WebApi;
 
 use Magento\Framework\Api\SearchCriteriaInterface;
+use Magmodules\Reloadify\Api\WebApi\Data\VersionInterface;
 
 /**
  * Feed repository interface
@@ -19,6 +20,11 @@ interface RepositoryInterface
      * @return mixed
      */
     public function getSettings(): array;
+
+    /**
+     * @return \Magmodules\Reloadify\Api\WebApi\Data\VersionInterface
+     */
+    public function getVersion(): VersionInterface;
 
     /**
      * @param int $entityId
@@ -59,7 +65,7 @@ interface RepositoryInterface
      *
      * @return mixed
      */
-    public function getProduct(int $storeId, ?int $entityId): array;
+    public function getProduct(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId
@@ -82,7 +88,7 @@ interface RepositoryInterface
      * @param int|null $entityId
      * @return mixed
      */
-    public function getVariant(int $storeId, ?int $entityId): array;
+    public function getVariant(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId
@@ -111,7 +117,7 @@ interface RepositoryInterface
      * @param int|null $entityId
      * @return mixed
      */
-    public function getCategory(int $storeId, ?int $entityId): array;
+    public function getCategory(int $storeId, ?int $entityId = null): array;
 
     /**
      * @param int $storeId

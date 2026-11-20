@@ -5,6 +5,58 @@ require([
 ], function ($, modal) {
 
     /**
+     * Response data is text, never markup: log lines, test messages and version numbers come from the
+     * server as-is.
+     *
+     * @param{*} value
+     * @returns {String}
+     */
+    function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
+            return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char];
+        });
+    }
+
+    /**
+     * The changelog is HTML fetched from the version service. Only the tags the changelog format uses
+     * survive; other elements are reduced to their text, scripts and the like are dropped, and no
+     * attribute gets through.
+     */
+    var CHANGELOG_TAGS = ['b', 'strong', 'i', 'em', 'u', 'br', 'p', 'ul', 'ol', 'li'];
+    var CHANGELOG_DROP = ['script', 'style', 'template', 'iframe', 'object', 'embed', 'svg', 'math'];
+
+    /**
+     * @param{String} html
+     * @returns {String}
+     */
+    function sanitizeChangelog(html) {
+        var body = new DOMParser().parseFromString(String(html == null ? '' : html), 'text/html').body;
+
+        var clean = function (node) {
+            Array.prototype.slice.call(node.childNodes).forEach(function (child) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    return;
+                }
+                if (child.nodeType !== Node.ELEMENT_NODE || CHANGELOG_DROP.indexOf(child.localName) !== -1) {
+                    child.remove();
+                    return;
+                }
+                if (CHANGELOG_TAGS.indexOf(child.localName) === -1) {
+                    child.replaceWith(document.createTextNode(child.textContent));
+                    return;
+                }
+                Array.prototype.slice.call(child.attributes).forEach(function (attribute) {
+                    child.removeAttribute(attribute.name);
+                });
+                clean(child);
+            });
+        };
+        clean(body);
+
+        return body.innerHTML;
+    }
+
+    /**
      * @param{String} modalSelector - modal css selector.
      * @param{Object} options - modal options.
      */
@@ -27,13 +79,14 @@ require([
             if (Array.isArray(result)) {
 
                 var lisHtml = result.map(function (err) {
-                    return '<li class="magmodules-reloadify-result_debug-item"><strong>' + err.date + '</strong><p>' + err.msg + '</p></li>';
+                    return '<li class="magmodules-reloadify-result_debug-item"><strong>' + escapeHtml(err.date)
+                        + '</strong><p>' + escapeHtml(err.msg) + '</p></li>';
                 }).join('');
 
                 $container.find('.result').empty().append('<ul>' + lisHtml + '</ul>');
             } else {
 
-                $container.find('.result').empty().append(result);
+                $container.find('.result').empty().text(String(result));
             }
         },
 
@@ -46,13 +99,14 @@ require([
             if (Array.isArray(result)) {
 
                 var lisHtml = result.map(function (err) {
-                    return '<li class="magmodules-reloadify-result_error-item"><strong>' + err.date + '</strong><p>' + err.msg + '</p></li>';
+                    return '<li class="magmodules-reloadify-result_error-item"><strong>' + escapeHtml(err.date)
+                        + '</strong><p>' + escapeHtml(err.msg) + '</p></li>';
                 }).join('');
 
                 $container.find('.result').empty().append('<ul>' + lisHtml + '</ul>');
             } else {
 
-                $container.find('.result').empty().append(result);
+                $container.find('.result').empty().text(String(result));
             }
         },
 
@@ -65,14 +119,15 @@ require([
             var lisHtml = result.map(function (test) {
 
                 var supportLinkHtml = test.support_link ?
-                    '<a target="_blank" href="' + test.support_link + '" class="magmodules-reloadify-icon__help-rounded"></a>' : '';
+                    '<a target="_blank" href="' + escapeHtml(test.support_link)
+                    + '" class="magmodules-reloadify-icon__help-rounded"></a>' : '';
                 var resultText = test.result_code === 'success' ?
                     $.mage.__('Passed') : $.mage.__('Failed');
                 var resultMsg = test.result_code === 'failed' ? test.result_msg : '';
 
-                return '<li class="magmodules-reloadify-result_test-item ' + test.result_code
+                return '<li class="magmodules-reloadify-result_test-item ' + escapeHtml(test.result_code)
                     + '"><strong>' + resultText + '</strong>'
-                    + '<div><p>' + test.test + '</p><p><em>' + resultMsg + '</em></p></div>'
+                    + '<div><p>' + escapeHtml(test.test) + '</p><p><em>' + escapeHtml(resultMsg) + '</em></p></div>'
                     + supportLinkHtml + '</li>';
             }).join('');
 
@@ -88,14 +143,14 @@ require([
             var resultHtml = '';
             var currentVersion = result.current_verion.replace(/v|version/gi, '');
             var latestVersion = result.last_version.replace(/v|version/gi, '');
-            if (this.compare(latestVersion, currentVersion) < 0) {
+            if (!this.isNewerVersion(latestVersion, currentVersion)) {
                 resultHtml = '<strong class="magmodules-reloadify-version magmodules-reloadify-icon__thumbs-up">'
                     + $.mage.__('Great, you are using the latest version.')
                     + '</strong>';
             } else {
 
                 var translatedResult = $.mage.__('There is a new version available <span>(%1)</span> see <button type="button" id="magmodules-reloadify-button_changelog">changelog</button>.')
-                    .replace('%1', latestVersion);
+                    .replace('%1', escapeHtml(latestVersion));
 
                 resultHtml = '<strong class="magmodules-reloadify-version magmodules-reloadify-icon__thumbs-down">'
                     + translatedResult
@@ -105,29 +160,21 @@ require([
             $container.html(resultHtml);
         },
 
-        compare: function(a, b) {
-            if (a === b) {
-                return 0;
-            }
-            var a_components = a.split(".");
-            var b_components = b.split(".");
-            var len = Math.min(a_components.length, b_components.length);
+        isNewerVersion: function(latest, current) {
+            var latestParts = latest.split('.').map(Number);
+            var currentParts = current.split('.').map(Number);
+            var len = Math.max(latestParts.length, currentParts.length);
             for (var i = 0; i < len; i++) {
-                if (parseInt(a_components[i]) > parseInt(b_components[i])) {
-                    return 1;
+                var l = latestParts[i] || 0;
+                var c = currentParts[i] || 0;
+                if (l > c) {
+                    return true;
                 }
-
-                if (parseInt(a_components[i]) < parseInt(b_components[i])) {
-                    return -1;
+                if (l < c) {
+                    return false;
                 }
             }
-            if (a_components.length > b_components.length) {
-                return 1;
-            }
-            if (a_components.length < b_components.length) {
-                return -1;
-            }
-            return 0;
+            return false;
         },
 
         /**
@@ -143,9 +190,9 @@ require([
                 var resultHtml = result[key].changelog;
 
                 return '<li class="magmodules-reloadify-result_changelog-item"><b>'
-                    + version + '</b><span class="magmodules-reloadify-divider">|</span><b>'
-                    + date + '</b><div>'
-                    + resultHtml + '</div></li>';
+                    + escapeHtml(version) + '</b><span class="magmodules-reloadify-divider">|</span><b>'
+                    + escapeHtml(date) + '</b><div>'
+                    + sanitizeChangelog(resultHtml) + '</div></li>';
             }).join('');
 
             $container.find('.result').empty().append(lisHtml);

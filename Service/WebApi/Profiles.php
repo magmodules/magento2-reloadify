@@ -15,7 +15,7 @@ use Magento\Eav\Api\AttributeRepositoryInterface;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Newsletter\Model\Subscriber;
+use Magento\Newsletter\Model\SubscriberFactory;
 use Magento\Store\Model\StoreManagerInterface;
 use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
 use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
@@ -26,7 +26,6 @@ use Magento\Customer\Model\ResourceModel\Group\CollectionFactory as GroupCollect
  */
 class Profiles
 {
-
     /**
      * Default attribute map output
      */
@@ -36,46 +35,6 @@ class Profiles
         "gender" => 'gender',
     ];
     /**
-     * @var Subscriber
-     */
-    private $subscriber;
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-    /**
-     * @var CustomerRepositoryInterface
-     */
-    private $customerRepository;
-    /**
-     * @var CustomerResource
-     */
-    private $customerResource;
-    /**
-     * @var SearchCriteriaBuilder
-     */
-    private $searchCriteriaBuilder;
-    /**
-     * @var AddressRepository
-     */
-    private $addressRepository;
-    /**
-     * @var LogRepository
-     */
-    private $logRepository;
-    /**
-     * @var GroupCollectionFactory
-     */
-    private $groupCollectionFactory;
-    /**
-     * @var AttributeRepositoryInterface
-     */
-    private $attributeRepository;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
-    /**
      * @var array
      */
     private $attributeSourceMap = [];
@@ -83,7 +42,7 @@ class Profiles
     /**
      * Profiles constructor.
      *
-     * @param Subscriber $subscriber
+     * @param SubscriberFactory $subscriberFactory
      * @param StoreManagerInterface $storeManager
      * @param CustomerRepositoryInterface $customerRepository
      * @param SearchCriteriaBuilder $searchCriteriaBuilder
@@ -94,27 +53,17 @@ class Profiles
      * @param AttributeRepositoryInterface $attributeRepository
      */
     public function __construct(
-        Subscriber $subscriber,
-        StoreManagerInterface $storeManager,
-        CustomerRepositoryInterface $customerRepository,
-        SearchCriteriaBuilder $searchCriteriaBuilder,
-        CustomerResource $customerResource,
-        AddressRepository $addressRepository,
-        LogRepository $logRepository,
-        GroupCollectionFactory $groupCollectionFactory,
-        AttributeRepositoryInterface $attributeRepository,
-        ConfigRepository $configRepository
+        private readonly SubscriberFactory $subscriberFactory,
+        private readonly StoreManagerInterface $storeManager,
+        private readonly CustomerRepositoryInterface $customerRepository,
+        private readonly SearchCriteriaBuilder $searchCriteriaBuilder,
+        private readonly CustomerResource $customerResource,
+        private readonly AddressRepository $addressRepository,
+        private readonly LogRepository $logRepository,
+        private readonly GroupCollectionFactory $groupCollectionFactory,
+        private readonly AttributeRepositoryInterface $attributeRepository,
+        private readonly ConfigRepository $configRepository
     ) {
-        $this->subscriber = $subscriber;
-        $this->storeManager = $storeManager;
-        $this->customerRepository = $customerRepository;
-        $this->searchCriteriaBuilder = $searchCriteriaBuilder;
-        $this->customerResource = $customerResource;
-        $this->addressRepository = $addressRepository;
-        $this->logRepository = $logRepository;
-        $this->groupCollectionFactory = $groupCollectionFactory;
-        $this->attributeRepository = $attributeRepository;
-        $this->configRepository = $configRepository;
     }
 
     /**
@@ -131,6 +80,7 @@ class Profiles
         $customerGroups = $this->getCustomersGroups();
         $excludedFields = $this->configRepository->getExcludedCustomerFields($storeId);
         foreach ($customers as $customer) {
+            $groupId = $customer->getGroupId();
             $mainData = [
                 "id" => $customer->getId(),
                 "store_id" => $customer->getStoreId(),
@@ -143,10 +93,10 @@ class Profiles
                 "active" => true,
                 "subscribed_to_newsletter" => $this->isSubscribed($customer),
                 "birthdate" => $customer->getDob(),
-                "eav_customer_group" => $customerGroups[$customer->getGroupId()] ?? ''
+                "eav_customer_group" => $groupId !== null ? ($customerGroups[$groupId] ?? '') : ''
             ];
 
-            $customAttributes = $customer->getCustomAttributes();
+            $customAttributes = $customer->getCustomAttributes() ?? [];
             foreach ($customAttributes as $attributeCode => $attribute) {
                 $type = $this->getAttributeType($attributeCode);
                 $mainData['eav_' . $attributeCode] = $this->getAttributeValue($attribute, $type);
@@ -157,8 +107,8 @@ class Profiles
                     $billing = $this->addressRepository->getById((int)$billingId);
                     $mainData += [
                         "city" => $billing->getCity(),
-                        "province" => $billing->getRegion()->getRegion(),
-                        "street" => implode(',', $billing->getStreet()),
+                        "province" => $billing->getRegion()?->getRegion(),
+                        "street" => implode(',', $billing->getStreet() ?? []),
                         "zipcode" => $billing->getPostcode(),
                         "country_code" => $billing->getCountryId(),
                         "first_name" => $billing->getFirstname(),
@@ -227,25 +177,34 @@ class Profiles
      */
     private function getGender($customer): string
     {
+        if (!$customer->getGender()) {
+            return 'Not Specified';
+        }
         try {
-            return $customer->getGender()
-                ? (string)$this->customerResource->getAttribute('gender')
-                    ->getSource()
-                    ->getOptionText($customer->getGender())
-                : 'Not Specified';
+            $attribute = $this->customerResource->getAttribute('gender');
+            if (!$attribute) {
+                return 'Not Specified';
+            }
+            return (string)$attribute->getSource()->getOptionText($customer->getGender());
         } catch (\Exception $exception) {
             return 'Not Specified';
         }
     }
 
     /**
-     * @param $customer
+     * Whether the customer is subscribed to the newsletter on its own website.
+     *
+     * Every customer gets a subscriber of its own: a shared one keeps the subscription it loaded
+     * before, so a customer without one read as subscribed whenever the customer before was.
+     *
+     * @param \Magento\Customer\Api\Data\CustomerInterface $customer
      *
      * @return bool
      */
     private function isSubscribed($customer): bool
     {
-        $subscription = $this->subscriber->loadByCustomerId($customer->getId());
+        $subscription = $this->subscriberFactory->create()
+            ->loadByCustomer((int)$customer->getId(), (int)$customer->getWebsiteId());
         return $subscription->isSubscribed();
     }
 

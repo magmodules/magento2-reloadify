@@ -15,8 +15,8 @@ Connect your Magento 2 store to the [Reloadify](https://www.magmodules.eu/magent
 
 ## Requirements
 
-- Magento 2.3.x or higher
-- PHP 7.4 or higher
+- Magento 2.4.4 or higher
+- PHP 8.1 or higher
 
 ## Installation
 
