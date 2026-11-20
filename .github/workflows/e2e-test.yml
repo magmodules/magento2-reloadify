@@ -120,7 +120,7 @@ jobs:
       - name: Configure the shop for the suite
         run: |
           docker exec -w /data magento-project-community-edition \
-            bash extensions/$MODULE_DIR/Test/End-2-end/scripts/configure-shop.sh
+            bash extensions/$MODULE_DIR/.github/workflows/templates/magento/configure-reloadify.sh
 
       - name: Check that the storefront and REST API answer
         run: |
@@ -137,7 +137,12 @@ jobs:
           cd Test/End-2-end
           npm ci
 
-      # HTTP only: the suite uses Playwright's request API, so no browser is installed.
+      # The REST specs use Playwright's request API; the baseline project drives the admin in Chromium.
+      - name: Install the browser
+        run: |
+          cd Test/End-2-end
+          npx playwright install --with-deps chromium
+
       - name: Run E2E tests
         run: |
           cd Test/End-2-end

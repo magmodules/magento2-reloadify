@@ -4,9 +4,19 @@
 # See COPYING.txt for license details.
 #
 # Prepares a Magento shop for the Reloadify E2E suite. Run it from the Magento root, on the host or
-# inside the container: bash /path/to/configure-shop.sh
+# inside the container: bash /path/to/configure-reloadify.sh
+# In a container it finds the Magento root itself when started from somewhere else.
 
 set -e
+
+if [ ! -f bin/magento ]; then
+    for root in /data /var/www/html; do
+        if [ -f "$root/bin/magento" ]; then
+            cd "$root"
+            break
+        fi
+    done
+fi
 
 if [ ! -f bin/magento ]; then
     echo "Run this from the Magento root (bin/magento not found in $(pwd))" >&2

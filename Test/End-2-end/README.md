@@ -1,8 +1,14 @@
 # Reloadify E2E suite
 
-Calls the Reloadify REST API and the cart restore link against a running Magento shop, over HTTP
-only (no browser), and compares the answers with Magento's own REST API. The test list is in
-`E2E-TESTS.md` in the module root.
+Two parts, against a running Magento shop. The test list is in `E2E-TESTS.md` in the module root.
+
+- **api**: calls the Reloadify REST API and the cart restore link over HTTP only (no browser) and
+  compares the answers with Magento's own REST API.
+- **baseline**: drives the admin in Chromium. Every configuration field is saved with every option
+  on and then with every switch off, and read back from `core_config_data`; every admin route
+  answers a bare request without an exception; every CLI command still runs. It reads the shop
+  through `docker exec`, so it runs against a container only and is left out when `MAGENTO_ROOT`
+  is set.
 
 ## What it changes on the shop
 
@@ -11,12 +17,13 @@ a category, a simple, a configurable with two children, a bundle with one part, 
 two reviews, a guest newsletter subscriber, orders (one invoiced, shipped and refunded), carts and
 a second integration without the Reloadify resource. Specs change Reloadify configuration and
 reset it afterwards, and the setup runs `indexer:reindex` for the stock, price and category indexers.
+Against a container the setup also switches off the secret key in admin URLs and the admin captcha.
 
 ## Prepare the shop (once)
 
 From the Magento root, with the module installed and `setup:upgrade` done:
 
-    bash <module>/Test/End-2-end/scripts/configure-shop.sh
+    bash <module>/.github/workflows/templates/magento/configure-reloadify.sh
 
 This enables the module, allows integration tokens as Bearer tokens, disables two-factor
 authentication, enables flat rate, check/money order and guest checkout, and keeps stock managed.
@@ -26,6 +33,7 @@ authentication, enables flat rate, check/money order and guest checkout, and kee
 Node 20 or newer. From `Test/End-2-end`:
 
     npm ci
+    npx playwright install chromium   # only for the baseline project
     BASE_URL=https://shop.example/ \
     MAGENTO_ROOT=/var/www/shop \
     MAGENTO_ADMIN_USER=admin MAGENTO_ADMIN_PASS=secret \
@@ -36,7 +44,7 @@ Node 20 or newer. From `Test/End-2-end`:
 | `BASE_URL` | Storefront base URL, with trailing slash | `https://magento.test/` |
 | `MAGENTO_ROOT` | Magento directory on this host; commands run directly there | (unset) |
 | `MAGENTO_CONTAINER` | Without `MAGENTO_ROOT`: the Docker container commands run in | `magento-project-community-edition` |
-| `MAGENTO_ADMIN_USER` / `MAGENTO_ADMIN_PASS` | Admin user for the admin token | `exampleuser` / `examplepassword123` |
+| `MAGENTO_ADMIN_USER` / `MAGENTO_ADMIN_PASS` | Admin user for the admin token and the admin login | `exampleuser` / `examplepassword123` |
 
 The user running the suite needs to run `bin/magento` and write to the Magento `var/` directory.
 

@@ -17,7 +17,7 @@ const BEARER_SETTING = 'oauth/consumer/enable_integration_as_bearer';
  *
  * Reloadify connects with the integration's access token as a Bearer token. Since Magento 2.4.4
  * an integration token is only accepted that way when Stores > Configuration > Services > OAuth >
- * "Allow OAuth Access Tokens to be used as standalone Bearer tokens" is on; scripts/configure-shop.sh
+ * "Allow OAuth Access Tokens to be used as standalone Bearer tokens" is on; configure-reloadify.sh
  * switches it on, and the last test here shows what happens on a shop where it is off.
  */
 test.describe('Authentication', () => {

@@ -4,7 +4,7 @@
  */
 
 import { createHash } from 'crypto';
-import { magento, fixture, installFixtureScript, logLineCount } from './support/Container';
+import { LOCAL_ROOT, magento, fixture, installFixtureScript, logLineCount, setConfig } from './support/Container';
 import { Rest, BASE_URL } from './support/Rest';
 import { E2eState, MAGENTO_LOGS, MODULE_LOGS, PREFIX, writeState } from './support/State';
 import {
@@ -41,6 +41,12 @@ export default async function globalSetup(): Promise<void> {
   console.log(`E2E against ${BASE_URL}`);
 
   installFixtureScript();
+  if (!LOCAL_ROOT) {
+    // The baseline project drives the admin in a browser: a secret key in every admin URL and a
+    // captcha on the login form are in its way. Not touched on a dev server, where it does not run.
+    setConfig('admin/security/use_form_key', 0);
+    setConfig('admin/captcha/enable', 0);
+  }
   const logBaselines: Record<string, number> = {};
   for (const file of [...MODULE_LOGS, ...MAGENTO_LOGS]) {
     logBaselines[file] = logLineCount(file);
