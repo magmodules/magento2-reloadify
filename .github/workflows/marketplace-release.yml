@@ -1,9 +1,15 @@
 name: Adobe Marketplace Release
 
-# Submits a new version of an existing Marketplace package to the EQP technical review.
+# Submits a new version of an existing Marketplace package to both EQP reviews, technical and
+# marketing. A package is only listed once it has passed both.
 # - Module name comes from registration.php, SKU + version from composer.json (no per-module config).
-# - Documentation artifacts and version compatibility are reused from the previous version,
+# - Documentation artifacts and version compatibility are reused from the previous version, and
+#   each marketing field (text, categories, prices, media) from the newest version that carries it,
 #   so the very first version of a package must be submitted manually in the Developer Portal.
+# - A field no earlier version carries makes the marketing review wait: the technical review is
+#   still requested, the run warns, and the marketing side is finished in the Developer Portal.
+# - A dry run reads EQP and logs the version list, where each marketing field comes from and the
+#   prices it would send; it uploads and submits nothing.
 # - Requires org secrets MARKETPLACE_APP_ID / MARKETPLACE_APP_SECRET (production) and
 #   MARKETPLACE_SANDBOX_APP_ID / MARKETPLACE_SANDBOX_APP_SECRET (sandbox).
 
@@ -96,7 +102,6 @@ jobs:
           path: ${{ env.ZIP_NAME }}
 
       - name: Get EQP session token
-        if: env.DRY_RUN != 'true'
         env:
           APP_ID: ${{ env.EQP_ENV == 'production' && secrets.MARKETPLACE_APP_ID || secrets.MARKETPLACE_SANDBOX_APP_ID }}
           APP_SECRET: ${{ env.EQP_ENV == 'production' && secrets.MARKETPLACE_APP_SECRET || secrets.MARKETPLACE_SANDBOX_APP_SECRET }}
@@ -112,26 +117,66 @@ jobs:
           echo "EQP_TOKEN=$UST" >> "$GITHUB_ENV"
 
       - name: Load previous version
-        if: env.DRY_RUN != 'true'
         run: |
           ENCODED_SKU=$(jq -rn --arg s "$SKU" '$s|@uri')
-          RESPONSE=$(curl -sS --fail-with-body \
-            -H "Authorization: Bearer $EQP_TOKEN" \
-            "$EQP_BASE_URL/rest/v1/products/packages/skus/$ENCODED_SKU")
-          PACKAGES=$(jq 'if type == "array" then . else [.] end' <<<"$RESPONSE")
+          # This API pages at 20 records and returns the oldest first, so one call answers with the
+          # oldest twenty versions of the sku and nothing else, which for a long-lived extension are
+          # all versions already removed from the store. Reading only that page carries an old price
+          # and old screenshots into today's release.
+          PACKAGES='[]'
+          OFFSET=0
+          while :; do
+            PAGE=$(curl -sS --fail-with-body \
+              -H "Authorization: Bearer $EQP_TOKEN" \
+              -G "$EQP_BASE_URL/rest/v1/products/packages/skus/$ENCODED_SKU" \
+              --data-urlencode "offset=$OFFSET" --data-urlencode "limit=20" \
+              | jq 'if type == "array" then . else [.] end')
+            COUNT=$(jq 'length' <<<"$PAGE")
+            [ "$COUNT" -gt 0 ] || break
+            PACKAGES=$(jq -c -s 'add' <(echo "$PACKAGES") <(echo "$PAGE"))
+            [ "$COUNT" -ge 20 ] || break
+            OFFSET=$((OFFSET + COUNT))
+            [ "$OFFSET" -lt 500 ] || { echo "::warning::$SKU has more than 500 versions, stopping"; break; }
+          done
+          # A page that ignores offset repeats itself; de-duplicate on version so a stuck page
+          # cannot be mistaken for more versions.
+          PACKAGES=$(jq -c 'unique_by(.version)' <<<"$PACKAGES")
+          echo "Versions on EQP: $(jq 'length' <<<"$PACKAGES")"
 
-          if jq -e --arg v "$VERSION" 'any(.[]; .version == $v)' <<<"$PACKAGES" >/dev/null; then
-            echo "::error::Version $VERSION of $SKU is already submitted"
-            exit 1
+          # A version that failed Adobe's review stays listed under the SKU. That one may be
+          # submitted again (the submit step updates it in place); a version in review or
+          # released may not.
+          SAME=$(jq -c --arg v "$VERSION" '[.[] | select(.version == $v)] | sort_by(.created_at) | last // empty' <<<"$PACKAGES")
+          if [ -n "$SAME" ]; then
+            OVERALL=$(jq -r '.eqp_status.overall // "unknown"' <<<"$SAME")
+            case "$OVERALL" in
+              released|in_progress|submitted|queued)
+                # A dry run submits nothing, so it keeps going and shows what it would have sent.
+                if [ "$DRY_RUN" = "true" ]; then
+                  echo "::warning::Version $VERSION of $SKU is already submitted (status: $OVERALL); a real run would stop here"
+                else
+                  echo "::error::Version $VERSION of $SKU is already submitted (status: $OVERALL)"
+                  exit 1
+                fi
+                ;;
+              *)
+                echo "::warning::Version $VERSION of $SKU exists with status '$OVERALL'; it will be resubmitted"
+                ;;
+            esac
           fi
 
-          LATEST=$(jq 'sort_by(.created_at) | last' <<<"$PACKAGES")
+          LATEST=$(jq --arg v "$VERSION" '[.[] | select(.version != $v)] | sort_by(.created_at) | last' <<<"$PACKAGES")
           if [ "$LATEST" = "null" ]; then
             echo "::error::No previous version of $SKU found in $EQP_ENV; submit the first version manually in the Developer Portal"
             exit 1
           fi
 
           echo "Previous version: $(jq -r '.version' <<<"$LATEST")"
+          # The package type is whatever the package already is on the Marketplace: "extension" for a
+          # module, "shared" for a package other modules depend on. Hardcoding "extension"
+          # submitted a shared package as a module.
+          jq -r '.type // "extension"' <<<"$LATEST" > "$RUNNER_TEMP/type.txt"
+          echo "Package type: $(cat "$RUNNER_TEMP/type.txt")"
           echo "Raw documentation_artifacts: $(jq -c '.documentation_artifacts' <<<"$LATEST")"
           echo "Raw version_compatibility: $(jq -c '.version_compatibility' <<<"$LATEST")"
 
@@ -156,11 +201,73 @@ jobs:
           ' <<<"$LATEST" > "$RUNNER_TEMP/docs.json"
 
           if [ "$(jq 'length' "$RUNNER_TEMP/docs.json")" = "0" ]; then
-            echo "::error::Could not read documentation artifacts from the previous version (see raw output above)"
-            exit 1
+            # A shared package carries no documentation on the Marketplace: user, installation
+            # and reference are all empty. A module always has at least one PDF.
+            if [ "$(cat "$RUNNER_TEMP/type.txt")" = "extension" ]; then
+              echo "::error::Could not read documentation artifacts from the previous version (see raw output above)"
+              exit 1
+            fi
+            echo "No documentation artifacts on the previous version; none are sent for a $(cat "$RUNNER_TEMP/type.txt")"
           fi
           echo "Documentation artifacts: $(cat "$RUNNER_TEMP/docs.json")"
           echo "Compatibility: $(cat "$RUNNER_TEMP/compat.json")"
+
+          # EQP has two review pipelines and a package has to pass both to be listed. Asking for the
+          # technical review alone leaves the marketing side in draft, where nobody at Adobe looks,
+          # so the marketing fields and the media come along and both reviews are requested.
+          #
+          # Every field is taken from the newest version that carries it, a released version
+          # outranking a draft, rather than the whole set from one version: the newest version that
+          # still has media can be years old, and its price then rolls back whatever was edited in
+          # the Developer Portal since. Media stays grouped, so a gallery is never half one version.
+          #
+          # media_artifacts is not shaped like documentation_artifacts: the icon is one file, the
+          # gallery is a list of them and the video urls are plain strings. Treating it as a map of
+          # single files drops the gallery and leaves an empty object behind.
+          jq -c --arg v "$VERSION" '
+            def media:
+              (.media_artifacts // {}) as $m
+              | {}
+              + (if ($m.icon_image | type) == "object" and $m.icon_image.file_upload_id != null
+                 then { icon_image: { file_upload_id: $m.icon_image.file_upload_id } } else {} end)
+              + (if ($m.gallery_images | type) == "array"
+                 then { gallery_images: [$m.gallery_images[]
+                        | select(type == "object" and .file_upload_id != null) | { file_upload_id }] }
+                 else {} end)
+              + (if ($m.video_urls | type) == "array" and ($m.video_urls | length) > 0
+                 then { video_urls: $m.video_urls } else {} end)
+              | with_entries(select(.value != null and (.value | if type == "array" then length > 0 else true end)));
+            def fields: ({ name, long_description, short_description, categories, license_type,
+                           custom_license_name, custom_license_url, pricing_model, prices,
+                           support_tiers, stability }
+                         | with_entries(select(.value != null and .value != "" and .value != [])));
+            [.[] | select(.version != $v)]
+            | sort_by(.eqp_status.overall == "released_to_store", .created_at)
+            | reduce .[] as $p ({};
+                . + ($p | fields | with_entries(.value |= { value: ., from: $p.version }))
+                  + (($p | media) as $m
+                     | if ($m | length) > 0 then { media_artifacts: { value: $m, from: $p.version } } else {} end))
+          ' <<<"$PACKAGES" > "$RUNNER_TEMP/source.json"
+
+          jq -c 'del(.media_artifacts) | with_entries(.value |= .value)' "$RUNNER_TEMP/source.json" > "$RUNNER_TEMP/marketing.json"
+          jq -c '.media_artifacts.value // {}' "$RUNNER_TEMP/source.json" > "$RUNNER_TEMP/media.json"
+          echo "Marketing fields per source version: $(jq -r '[to_entries[] | "\(.key)=\(.value.from)"] | join(" ")' "$RUNNER_TEMP/source.json")"
+          echo "Media artifacts: $(cat "$RUNNER_TEMP/media.json")"
+          echo "Prices: $(jq -c '.prices' "$RUNNER_TEMP/marketing.json")"
+
+          # Without these the marketing pipeline refuses the submission, and a half-submitted
+          # package is worse than one that is only waiting on the technical review: it reads as
+          # submitted while nothing is moving.
+          MARKETING_READY=1
+          for FIELD in name long_description categories license_type; do
+            jq -e --arg f "$FIELD" 'has($f)' "$RUNNER_TEMP/marketing.json" >/dev/null \
+              || { echo "::warning::No earlier version of $SKU carries $FIELD; marketing review will not be requested"; MARKETING_READY=0; }
+          done
+          jq -e '.icon_image.file_upload_id != null' "$RUNNER_TEMP/media.json" >/dev/null \
+            || { echo "::warning::No earlier version of $SKU carries an icon image; marketing review will not be requested"; MARKETING_READY=0; }
+          jq -e '(.gallery_images // []) | length > 0' "$RUNNER_TEMP/media.json" >/dev/null \
+            || { echo "::warning::No earlier version of $SKU carries gallery images; marketing review will not be requested"; MARKETING_READY=0; }
+          echo "MARKETING_READY=$MARKETING_READY" >> "$GITHUB_ENV"
 
       - name: Upload zip to EQP
         if: env.DRY_RUN != 'true'
@@ -208,24 +315,30 @@ jobs:
             | sed -e :a -e '/^[[:space:]]*$/{$d;N;ba' -e '}')
           [ -n "$NOTES" ] || { echo "::error::No release notes (release body empty and no CHANGELOG.md section for $VERSION)"; exit 1; }
 
+          PACKAGE_TYPE=$(cat "$RUNNER_TEMP/type.txt" 2>/dev/null || echo extension)
           PAYLOAD=$(jq -n \
             --arg sku "$SKU" \
+            --arg type "$PACKAGE_TYPE" \
             --arg version "$VERSION" \
             --arg notes "$NOTES" \
             --arg file_id "$FILE_UPLOAD_ID" \
             --slurpfile compat "$RUNNER_TEMP/compat.json" \
             --slurpfile docs "$RUNNER_TEMP/docs.json" \
+            --slurpfile marketing "$RUNNER_TEMP/marketing.json" \
+            --slurpfile media "$RUNNER_TEMP/media.json" \
+            --argjson ready "${MARKETING_READY:-0}" \
             '[{
-              action: { technical: "submit" },
-              type: "extension",
+              action: (if $ready == 1 then { technical: "submit", marketing: "submit" }
+                       else { technical: "submit" } end),
+              type: $type,
               platform: "M2",
               sku: $sku,
               version: $version,
               release_notes: $notes,
               artifact: { file_upload_id: $file_id },
-              version_compatibility: $compat[0],
-              documentation_artifacts: $docs[0]
-            }]')
+              version_compatibility: $compat[0]
+            } + (if ($docs[0] | length) > 0 then {documentation_artifacts: $docs[0]} else {} end)
+              + (if $ready == 1 then $marketing[0] + { media_artifacts: $media[0] } else {} end)]')
 
           # A failed earlier attempt can leave this version behind (e.g. as a draft): update that
           # submission instead of creating a duplicate. The API's sku/version filters are substring

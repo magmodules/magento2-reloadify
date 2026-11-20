@@ -67,6 +67,13 @@ jobs:
           awk -v v="## [$VERSION]" 'index($0, v) == 1 {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md \
             | sed '/./,$!d' > "$RUNNER_TEMP/notes.md"
           [ -s "$RUNNER_TEMP/notes.md" ] || { echo "::error::No '## [$VERSION]' section in CHANGELOG.md"; exit 1; }
+          # The notes go onto the release page as-is. Keep-a-Changelog markup ("### Features", "- item")
+          # has slipped through before; convert it here so the published notes stay in the release format.
+          sed -E -i 's/^### +([A-Za-z ]+)$/**\1:**/; s/^- /* /' "$RUNNER_TEMP/notes.md"
+          if grep -qE '^(#|- )' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::Release notes still contain markdown headings or dash bullets; use **Heading:** and * bullets"
+            exit 1
+          fi
           cat "$RUNNER_TEMP/notes.md"
 
       - name: Create or update draft release
