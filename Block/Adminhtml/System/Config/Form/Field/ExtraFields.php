@@ -44,7 +44,7 @@ class ExtraFields extends AbstractFieldArray
             ]
         );
         $this->_addAfter = false;
-        $this->_addButtonLabel = __('Add');
+        $this->_addButtonLabel = __('Add')->render();
     }
 
     /**
@@ -56,11 +56,15 @@ class ExtraFields extends AbstractFieldArray
     public function getAttributeRenderer(): Renderer\Attributes
     {
         if (!$this->attributeRenderer) {
-            $this->attributeRenderer = $this->getLayout()->createBlock(
+            $renderer = $this->getLayout()->createBlock(
                 Renderer\Attributes::class,
                 '',
                 ['data' => ['is_render_to_js_template' => true]]
             );
+            if (!$renderer instanceof Renderer\Attributes) {
+                throw new LocalizedException(__('Could not create the attribute renderer.'));
+            }
+            $this->attributeRenderer = $renderer;
         }
 
         return $this->attributeRenderer;

@@ -13,7 +13,7 @@
             <source_model>Magmodules\Reloadify\Model\Config\Source\BaseUrl</source_model>
             <config_path>magmodules_reloadify/pwa/base_url</config_path>
         </field>
-        <field id="custom_url" translate="label" type="text" sortOrder="110" showInDefault="1" showInWebsite="0" showInStore="1">
+        <field id="custom_url" translate="label" type="text" sortOrder="110" showInDefault="1" showInWebsite="0" showInStore="1" canRestore="1">
             <label>PWA URL</label>
             <config_path>magmodules_reloadify/pwa/custom_url</config_path>
             <backend_model>Magmodules\Reloadify\Model\Config\Backend\ValidateUrl</backend_model>

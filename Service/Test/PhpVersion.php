@@ -41,7 +41,7 @@ class PhpVersion
     /**
      * Expected result
      */
-    public const EXPECTED = '7.1';
+    public const EXPECTED = '8.1';
 
     /**
      * Link to get support

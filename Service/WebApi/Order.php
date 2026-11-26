@@ -23,7 +23,6 @@ use Magmodules\Reloadify\Api\Config\RepositoryInterface as ConfigRepository;
  */
 class Order
 {
-
     /**
      * Default attribute map output
      */
@@ -38,27 +37,6 @@ class Order
         "created_at" => 'created_at',
         "shopping_cart_id" => 'quote_id'
     ];
-
-    /**
-     * @var CollectionFactory
-     */
-    private $orderCollectionFactory;
-    /**
-     * @var CustomerRepository
-     */
-    private $customerRepository;
-    /**
-     * @var CollectionProcessorInterface
-     */
-    private $collectionProcessor;
-    /**
-     * @var ResourceConnection
-     */
-    private $resourceConnection;
-    /**
-     * @var ConfigRepository
-     */
-    private $configRepository;
 
     /**
      * Mapping from canonical excluded field names to Order-specific keys
@@ -84,17 +62,12 @@ class Order
      * @param ConfigRepository $configRepository
      */
     public function __construct(
-        CollectionFactory $orderCollectionFactory,
-        CustomerRepository $customerRepository,
-        CollectionProcessorInterface $collectionProcessor,
-        ResourceConnection $resourceConnection,
-        ConfigRepository $configRepository
+        private readonly CollectionFactory $orderCollectionFactory,
+        private readonly CustomerRepository $customerRepository,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly ResourceConnection $resourceConnection,
+        private readonly ConfigRepository $configRepository
     ) {
-        $this->orderCollectionFactory = $orderCollectionFactory;
-        $this->customerRepository = $customerRepository;
-        $this->collectionProcessor = $collectionProcessor;
-        $this->resourceConnection = $resourceConnection;
-        $this->configRepository = $configRepository;
     }
 
     /**
@@ -300,8 +273,9 @@ class Order
             }
 
             // If it is a simple product associated with a bundle, get the parent bundle product ID
-            if ($isBundleChild) {
-                $orderedProduct['parent_id'] = $item->getParentItem()->getProductId();
+            $parentItem = $item->getParentItem();
+            if ($isBundleChild && $parentItem) {
+                $orderedProduct['parent_id'] = $parentItem->getProductId();
             }
 
             if ($item->getProductType() == 'grouped') {
@@ -332,7 +306,11 @@ class Order
      */
     private function getDelivery(OrderModel $order): string
     {
-        $shipment = $order->getShipmentsCollection()->getFirstItem();
+        $shipments = $order->getShipmentsCollection();
+        if (!$shipments) {
+            return '';
+        }
+        $shipment = $shipments->getFirstItem();
         if ($shipment) {
             return (string)$shipment->getCreatedAt();
         }
@@ -348,7 +326,11 @@ class Order
     private function getRefundedAt(OrderModel $order): ?string
     {
         $earliest = null;
-        foreach ($order->getCreditmemosCollection() as $creditmemo) {
+        $creditmemos = $order->getCreditmemosCollection();
+        if (!$creditmemos) {
+            return null;
+        }
+        foreach ($creditmemos as $creditmemo) {
             $createdAt = $creditmemo->getCreatedAt();
             if ($createdAt === null) {
                 continue;

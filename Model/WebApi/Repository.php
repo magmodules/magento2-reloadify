@@ -10,6 +10,7 @@ namespace Magmodules\Reloadify\Model\WebApi;
 use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Serialize\Serializer\Json;
+use Magmodules\Reloadify\Api\WebApi\Data\VersionInterface;
 use Magmodules\Reloadify\Api\WebApi\RepositoryInterface;
 use Magmodules\Reloadify\Service\WebApi\Cart;
 use Magmodules\Reloadify\Service\WebApi\Category;
@@ -21,62 +22,13 @@ use Magmodules\Reloadify\Service\WebApi\Subscribers;
 use Magmodules\Reloadify\Service\WebApi\Review;
 use Magmodules\Reloadify\Service\WebApi\Settings;
 use Magmodules\Reloadify\Service\WebApi\Variants;
+use Magmodules\Reloadify\Service\WebApi\Version;
 
 /**
  * Web API repository class
  */
 class Repository implements RepositoryInterface
 {
-
-    /**
-     * @var Category
-     */
-    private $category;
-    /**
-     * @var Product
-     */
-    private $product;
-    /**
-     * @var Language
-     */
-    private $language;
-    /**
-     * @var Profiles
-     */
-    private $profiles;
-    /**
-     * @var Subscribers
-     */
-    private $subscribers;
-    /**
-     * @var Order
-     */
-    private $order;
-    /**
-     * @var Cart
-     */
-    private $cart;
-    /**
-     * @var Review
-     */
-    private $review;
-    /**
-     * @var Variants
-     */
-    private $variants;
-    /**
-     * @var Settings
-     */
-    private $settings;
-    /**
-     * @var RequestInterface
-     */
-    private $request;
-    /**
-     * @var Json
-     */
-    private $json;
-
     /**
      * Repository constructor.
      *
@@ -91,33 +43,23 @@ class Repository implements RepositoryInterface
      * @param Settings $settings
      * @param RequestInterface $requestInterface
      * @param Json $json
+     * @param Version $version
      */
     public function __construct(
-        Category $category,
-        Product $product,
-        Language $language,
-        Profiles $profiles,
-        Subscribers $subscribers,
-        Order $order,
-        Cart $cart,
-        Review $review,
-        Variants $variants,
-        Settings $settings,
-        RequestInterface $requestInterface,
-        Json $json
+        private readonly Category $category,
+        private readonly Product $product,
+        private readonly Language $language,
+        private readonly Profiles $profiles,
+        private readonly Subscribers $subscribers,
+        private readonly Order $order,
+        private readonly Cart $cart,
+        private readonly Review $review,
+        private readonly Variants $variants,
+        private readonly Settings $settings,
+        private readonly RequestInterface $requestInterface,
+        private readonly Json $json,
+        private readonly Version $version
     ) {
-        $this->category = $category;
-        $this->product = $product;
-        $this->language = $language;
-        $this->profiles = $profiles;
-        $this->subscribers = $subscribers;
-        $this->order = $order;
-        $this->cart = $cart;
-        $this->review = $review;
-        $this->variants = $variants;
-        $this->settings = $settings;
-        $this->request = $requestInterface;
-        $this->json = $json;
     }
 
     /**
@@ -126,6 +68,14 @@ class Repository implements RepositoryInterface
     public function getSettings(): array
     {
         return $this->settings->execute();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getVersion(): VersionInterface
+    {
+        return $this->version->execute();
     }
 
     /**
@@ -158,7 +108,7 @@ class Repository implements RepositoryInterface
     public function getProfiles(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -171,7 +121,7 @@ class Repository implements RepositoryInterface
     public function getSubscribers(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -192,7 +142,7 @@ class Repository implements RepositoryInterface
     public function getProducts(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -221,7 +171,7 @@ class Repository implements RepositoryInterface
     public function getVariants(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -242,7 +192,7 @@ class Repository implements RepositoryInterface
     public function getReviews(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -263,7 +213,7 @@ class Repository implements RepositoryInterface
     public function getCategories(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -284,7 +234,7 @@ class Repository implements RepositoryInterface
     public function getOrders(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }
@@ -305,7 +255,7 @@ class Repository implements RepositoryInterface
     public function getCarts(int $storeId, ?SearchCriteriaInterface $searchCriteria = null): array
     {
         try {
-            $filter = $this->json->unserialize(urldecode((string)$this->request->getParam('filter')));
+            $filter = $this->json->unserialize(urldecode((string)$this->requestInterface->getParam('filter')));
         } catch (\Exception $exception) {
             $filter = [];
         }

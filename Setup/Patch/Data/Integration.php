@@ -16,28 +16,15 @@ use Magmodules\Reloadify\Service\WebApi\Integration as CreateToken;
  */
 class Integration implements DataPatchInterface
 {
-
-    /**
-     * @var CreateToken
-     */
-    private $createToken;
-
-    /**
-     * @var LogRepository
-     */
-    private $logRepository;
-
     /**
      * Integration constructor.
      * @param CreateToken $createToken
      * @param LogRepository $logRepository
      */
     public function __construct(
-        CreateToken $createToken,
-        LogRepository $logRepository
+        private readonly CreateToken $createToken,
+        private readonly LogRepository $logRepository
     ) {
-        $this->createToken = $createToken;
-        $this->logRepository = $logRepository;
     }
 
     /**
@@ -51,7 +38,7 @@ class Integration implements DataPatchInterface
     /**
      * @return $this
      */
-    public function apply()
+    public function apply(): self
     {
         try {
             $this->createToken->createToken();

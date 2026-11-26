@@ -2,11 +2,12 @@
     "name": "magmodules/magento2-reloadify",
     "description": "Reloadify extension for Magento 2",
     "type": "magento2-module",
-    "version": "1.17.2",
+    "version": "1.18.0",
     "license": [
         "BSD-2-Clause"
     ],
     "require": {
+        "php": ">=8.1",
         "magento/framework": ">=100.1.0"
     },
     "require-dev": {

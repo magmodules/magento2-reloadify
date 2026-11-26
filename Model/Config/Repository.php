@@ -11,6 +11,7 @@ use Exception;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Framework\Component\ComponentRegistrarInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Api\Data\StoreInterface;
@@ -24,56 +25,19 @@ use Magmodules\Reloadify\Model\Config\Source\BaseUrl;
  */
 class Repository implements ConfigRepositoryInterface
 {
-
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-
-    /**
-     * @var ScopeConfigInterface
-     */
-    private $scopeConfig;
-
-    /**
-     * @var ProductMetadataInterface
-     */
-    private $metadata;
-
-    /**
-     * @var Json
-     */
-    private $serializer;
-
-    /**
-     * @var ComponentRegistrarInterface
-     */
-    private $componentRegistrar;
-
-    /**
-     * @var FileDriver
-     */
-    private $fileDriver;
-
     /**
      * @var array|null
      */
     private ?array $composerData = null;
 
     public function __construct(
-        StoreManagerInterface $storeManager,
-        ScopeConfigInterface $scopeConfig,
-        ProductMetadataInterface $metadata,
-        Json $serializer,
-        ComponentRegistrarInterface $componentRegistrar,
-        FileDriver $fileDriver
+        private readonly StoreManagerInterface $storeManager,
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly ProductMetadataInterface $metadata,
+        private readonly Json $serializer,
+        private readonly ComponentRegistrarInterface $componentRegistrar,
+        private readonly FileDriver $fileDriver
     ) {
-        $this->storeManager = $storeManager;
-        $this->scopeConfig = $scopeConfig;
-        $this->metadata = $metadata;
-        $this->serializer = $serializer;
-        $this->componentRegistrar = $componentRegistrar;
-        $this->fileDriver = $fileDriver;
     }
 
     /**
@@ -121,7 +85,11 @@ class Repository implements ConfigRepositoryInterface
             }
         }
         $stores = $this->storeManager->getStores();
-        return reset($stores);
+        $store = reset($stores);
+        if ($store === false) {
+            throw new NoSuchEntityException(__('No store view is available.'));
+        }
+        return $store;
     }
 
     /**
@@ -359,7 +327,7 @@ class Repository implements ConfigRepositoryInterface
      *
      * @return array
      */
-    public function getStoreValueArray($path, $storeId = null, $scope = null)
+    private function getStoreValueArray($path, $storeId = null, $scope = null)
     {
         $value = $this->getStoreValue($path, $storeId, $scope);
         return $this->getValueArray($value);
@@ -370,12 +338,13 @@ class Repository implements ConfigRepositoryInterface
      *
      * @return array
      */
-    public function getValueArray($value)
+    private function getValueArray($value)
     {
         if (empty($value)) {
             return [];
         }
-        return $this->serializer->unserialize($value);
+        $result = $this->serializer->unserialize($value);
+        return is_array($result) ? $result : [];
     }
 
     public function getBaseUrlStore(?int $storeId = null): string
@@ -406,24 +375,20 @@ class Repository implements ConfigRepositoryInterface
             return $this->composerData;
         }
 
-        $this->composerData = [];
-
+        $data = [];
         $path = $this->componentRegistrar->getPath('module', ConfigRepositoryInterface::EXTENSION_CODE);
-        if (!$path) {
-            return $this->composerData;
-        }
-
-        try {
-            $filePath = $path . '/composer.json';
-            if ($this->fileDriver->isExists($filePath)) {
-                $this->composerData = $this->serializer->unserialize(
-                    $this->fileDriver->fileGetContents($filePath)
-                );
+        if ($path) {
+            try {
+                $filePath = $path . '/composer.json';
+                if ($this->fileDriver->isExists($filePath)) {
+                    $data = $this->serializer->unserialize($this->fileDriver->fileGetContents($filePath));
+                }
+            } catch (\Throwable $e) {
+                $data = [];
             }
-        } catch (\Throwable $e) {
-            $this->composerData = [];
         }
 
+        $this->composerData = is_array($data) ? $data : [];
         return $this->composerData;
     }
 }

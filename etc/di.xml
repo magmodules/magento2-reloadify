@@ -15,6 +15,8 @@
                 type="Magmodules\Reloadify\Model\WebApi\Repository"/>
     <preference for="Magmodules\Reloadify\Api\WebApi\CartRestoreInterface"
                 type="Magmodules\Reloadify\Model\WebApi\CartRestoreRepository"/>
+    <preference for="Magmodules\Reloadify\Api\WebApi\Data\VersionInterface"
+                type="Magmodules\Reloadify\Model\WebApi\Data\Version"/>
     <preference for="Magmodules\Reloadify\Api\Selftest\RepositoryInterface"
                 type="Magmodules\Reloadify\Model\Selftest\Repository"/>
     <preference for="Magmodules\Reloadify\Api\RequestLog\RepositoryInterface"
@@ -55,7 +57,6 @@
                 <item name="phpVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\PhpVersion</item>
                 <item name="extensionStatus" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionStatus</item>
                 <item name="magentoVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\MagentoVersion</item>
-                <item name="extensionVersion" xsi:type="object">Magmodules\Reloadify\Service\Test\ExtensionVersion</item>
             </argument>
         </arguments>
     </type>
@@ -68,12 +69,13 @@
     </type>
     <type name="Magmodules\Reloadify\Console\Command\Integration">
         <arguments>
+            <argument name="createToken" xsi:type="object">Magmodules\Reloadify\Service\WebApi\Integration\Proxy</argument>
             <argument name="configRepository" xsi:type="object">Magmodules\Reloadify\Api\Config\RepositoryInterface\Proxy</argument>
         </arguments>
     </type>
 
     <!-- Command line block start -->
-    <type name="Magento\Framework\Console\CommandList">
+    <type name="Magento\Framework\Console\CommandListInterface">
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="ReloadifySelftest" xsi:type="object">Magmodules\Reloadify\Console\Command\Selftest</item>

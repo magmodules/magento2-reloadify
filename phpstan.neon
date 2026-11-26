@@ -1,9 +1,47 @@
+includes:
+    - Test/vendor/bitexpert/phpstan-magento/extension.neon
+
 parameters:
-    level: 1
+    level: 8
     reportUnmatchedIgnoredErrors: false
+    # Magento's docblock types are often narrower than what the methods return (false, null); checks on them stay.
+    treatPhpDocTypesAsCertain: false
     ignoreErrors:
+        # Docblock completeness is not what level 8 is here for; argument and return types are.
+        - identifier: missingType.iterableValue
+        - identifier: missingType.parameter
+        - identifier: missingType.return
+        # Templates echo block getters whose types Magento does not declare; the escaper calls around them stay checked.
+        - identifier: echo.nonString
         - '#Variable \$block might not be defined.#'
         - '#Undefined variable: \$block#'
+        # PHPStan parses @SuppressWarnings as a type; Magento and PHPMD both write it this way.
+        - '#PHPDoc tag @SuppressWarnings has invalid value#'
+        # A catch of \Exception around a Magento service call is defensive: the declared @throws
+        # of those calls are not exhaustive, so a catch PHPStan calls dead is not safe to remove.
+        - identifier: catch.neverThrown
+        # The Web API reads "@return mixed" to pass the payload through untouched; "@return array"
+        # would make the service output processor treat it as a typed array. The native type stays array.
+        -
+            identifier: return.phpDocType
+            path: Api/WebApi/RepositoryInterface.php
+        # Magento returns these interfaces but always hands out the concrete class, whose extra methods the module relies on.
+        - '#Call to an undefined method Magento\\Sales\\Api\\Data\\OrderAddressInterface::getData\(\)#'
+        - '#Call to an undefined method Magento\\Eav\\Api\\Data\\AttributeInterface::getSource\(\)#'
+        - '#Call to an undefined method Magento\\Framework\\Api\\ExtensibleDataInterface::get(Email|Firstname|Middlename|Lastname)\(\)#'
+        - '#Session::replaceQuote\(\) expects Magento\\Quote\\Model\\Quote, Magento\\Quote\\Api\\Data\\CartInterface given#'
+        # The request log models are the DataInterface implementations; SearchResults stores any array.
+        - '#RequestLog\\Data\\SearchResultsInterface::setItems\(\) expects array<Magmodules\\Reloadify\\Api\\RequestLog\\Data\\DataInterface>, array<Magento\\Framework\\DataObject> given#'
+        # getConnection() is documented as AdapterInterface|false, but a resource model throws
+        # rather than return false, so the false branch is unreachable.
+        - '#Cannot call method [a-zA-Z]+\(\) on Magento\\Framework\\DB\\Adapter\\AdapterInterface\|false#'
+        # The debug and error loggers json-encode objects as well as arrays, which json_encode() does;
+        # Json::serialize() documents a narrower parameter type.
+        -
+            message: '#Json::serialize\(\) expects array\|bool\|float\|int\|string\|null, array(<mixed, mixed>)?\|object given#'
+            path: Logger/*
+        # Magento's collection docblocks are narrower than what the methods accept.
+        - '#::addFieldToFilter\(\) expects #'
     fileExtensions:
         - php
         - phtml

@@ -24,7 +24,7 @@ class Multiselect extends Value
     {
         $value = $this->getValue();
         if (is_array($value)) {
-            $value = array_filter($value, 'strlen');
+            $value = array_filter($value, static fn ($item): bool => (string)$item !== '');
             $this->setValue(implode(',', $value));
         }
         if (!$this->getValue()) {

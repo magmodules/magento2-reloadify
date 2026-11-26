@@ -29,39 +29,6 @@ use Magmodules\Reloadify\Api\Log\RepositoryInterface as LogRepository;
  */
 class Price
 {
-
-    /**
-     * @var TaxCalculationInterface
-     */
-    private $taxCalculation;
-    /**
-     * @var QuoteDetailsInterfaceFactory
-     */
-    private $quoteDetailsFactory;
-    /**
-     * @var QuoteDetailsItemInterfaceFactory
-     */
-    private $quoteDetailsItemFactory;
-    /**
-     * @var TaxClassKeyInterfaceFactory
-     */
-    private $taxClassKeyFactory;
-    /**
-     * @var TaxConfig
-     */
-    private $taxConfig;
-    /**
-     * @var ProductCollectionFactory
-     */
-    private $productCollectionFactory;
-    /**
-     * @var StoreManagerInterface
-     */
-    private $storeManager;
-    /**
-     * @var LogRepository
-     */
-    private $logRepository;
     /**
      * Store ids for which a failed tax calculation has already been logged
      *
@@ -82,23 +49,15 @@ class Price
      * @param LogRepository                    $logRepository
      */
     public function __construct(
-        TaxCalculationInterface $taxCalculation,
-        QuoteDetailsInterfaceFactory $quoteDetailsFactory,
-        QuoteDetailsItemInterfaceFactory $quoteDetailsItemFactory,
-        TaxClassKeyInterfaceFactory $taxClassKeyFactory,
-        TaxConfig $taxConfig,
-        ProductCollectionFactory $productCollectionFactory,
-        StoreManagerInterface $storeManager,
-        LogRepository $logRepository
+        private readonly TaxCalculationInterface $taxCalculation,
+        private readonly QuoteDetailsInterfaceFactory $quoteDetailsFactory,
+        private readonly QuoteDetailsItemInterfaceFactory $quoteDetailsItemFactory,
+        private readonly TaxClassKeyInterfaceFactory $taxClassKeyFactory,
+        private readonly TaxConfig $taxConfig,
+        private readonly ProductCollectionFactory $productCollectionFactory,
+        private readonly StoreManagerInterface $storeManager,
+        private readonly LogRepository $logRepository
     ) {
-        $this->taxCalculation = $taxCalculation;
-        $this->quoteDetailsFactory = $quoteDetailsFactory;
-        $this->quoteDetailsItemFactory = $quoteDetailsItemFactory;
-        $this->taxClassKeyFactory = $taxClassKeyFactory;
-        $this->taxConfig = $taxConfig;
-        $this->productCollectionFactory = $productCollectionFactory;
-        $this->storeManager = $storeManager;
-        $this->logRepository = $logRepository;
     }
 
     /**
@@ -139,28 +98,51 @@ class Price
                 ->setItems([$item]);
 
             $taxDetails = $this->taxCalculation->calculateTax($quoteDetails, $storeId);
-            $items = $taxDetails->getItems();
+            $items = $taxDetails->getItems() ?? [];
             $taxDetailsItem = array_shift($items);
+            if ($taxDetailsItem === null) {
+                return $this->fallbackToStoredPrice(
+                    $product,
+                    $price,
+                    $storeId,
+                    'The tax calculation returned no item.'
+                );
+            }
 
             return [
                 'incl' => $taxDetailsItem->getPriceInclTax(),
                 'excl' => $taxDetailsItem->getPrice()
             ];
         } catch (\Throwable $exception) {
-            if (!isset($this->loggedStores[$storeId])) {
-                $this->loggedStores[$storeId] = true;
-                $this->logRepository->addErrorLog(
-                    'price tax calculation',
-                    sprintf(
-                        'Store %s, SKU %s: %s Falling back to stored price.',
-                        $storeId,
-                        $product->getSku(),
-                        rtrim($exception->getMessage(), '.') . '.'
-                    )
-                );
-            }
-            return ['incl' => $price, 'excl' => $price];
+            return $this->fallbackToStoredPrice($product, $price, $storeId, $exception->getMessage());
         }
+    }
+
+    /**
+     * Log the failed tax calculation once per store view and return the stored price
+     *
+     * @param Product $product
+     * @param mixed   $price
+     * @param int     $storeId
+     * @param string  $reason
+     *
+     * @return array{incl: mixed, excl: mixed}
+     */
+    private function fallbackToStoredPrice(Product $product, $price, int $storeId, string $reason): array
+    {
+        if (!isset($this->loggedStores[$storeId])) {
+            $this->loggedStores[$storeId] = true;
+            $this->logRepository->addErrorLog(
+                'price tax calculation',
+                sprintf(
+                    'Store %s, SKU %s: %s Falling back to stored price.',
+                    $storeId,
+                    $product->getSku(),
+                    rtrim($reason, '.') . '.'
+                )
+            );
+        }
+        return ['incl' => $price, 'excl' => $price];
     }
 
     /**
@@ -181,13 +163,13 @@ class Price
         }
 
         try {
-            $collection = $this->productCollectionFactory->create()
-                ->setStore($storeId)
-                ->addFieldToFilter('entity_id', ['in' => $productIds])
-                ->addPriceData(
-                    GroupManagement::NOT_LOGGED_IN_ID,
-                    $this->storeManager->getStore($storeId)->getWebsiteId()
-                );
+            $collection = $this->productCollectionFactory->create();
+            $collection->setStore($storeId);
+            $collection->addFieldToFilter('entity_id', ['in' => $productIds]);
+            $collection->addPriceData(
+                GroupManagement::NOT_LOGGED_IN_ID,
+                $this->storeManager->getStore($storeId)->getWebsiteId()
+            );
         } catch (\Throwable $exception) {
             $this->logRepository->addErrorLog(
                 'price index',

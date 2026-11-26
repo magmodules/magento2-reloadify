@@ -1,0 +1,170 @@
+name: E2E Tests
+
+# Runs on demand: a manual dispatch, the run_e2e_tests label on a pull request, or any pull request
+# from a release/ branch. A run takes long enough that it should not start on every push.
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  remove-label:
+    if: >-
+      github.event.label.name == 'run_e2e_tests' ||
+      contains(github.event.pull_request.labels.*.name, 'run_e2e_tests')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove run_e2e_tests label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // The label and the push can both start a run; whichever comes second finds it gone.
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'run_e2e_tests'
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+              core.info('Label run_e2e_tests was already removed.');
+            }
+
+  e2e:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'run_e2e_tests' ||
+      contains(github.event.pull_request.labels.*.name, 'run_e2e_tests') ||
+      (github.event_name == 'pull_request' && github.event.action != 'labeled' && startsWith(github.head_ref, 'release/'))
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - PHP_VERSION: php83-fpm
+            MAGENTO_VERSION: 2.4.7-p3
+          - PHP_VERSION: php85-fpm
+            MAGENTO_VERSION: 2.4.9
+
+    name: E2E ${{ matrix.PHP_VERSION }} Magento ${{ matrix.MAGENTO_VERSION }}
+    # The organisation's own runners only for a private repository. A public one takes pull requests
+    # from forks, and those must not run on a self-hosted runner: it goes to GitHub's.
+    runs-on: ${{ (github.event.repository.private && vars.E2E_RUNNER) || 'ubuntu-24.04' }}
+    timeout-minutes: 90
+    env:
+      PHP_VERSION: ${{ matrix.PHP_VERSION }}
+      MAGENTO_VERSION: ${{ matrix.MAGENTO_VERSION }}
+
+    steps:
+      # A self-hosted runner keeps its Docker daemon between jobs, so a job that died halfway leaves
+      # its containers behind. Images stay: they are the cache that makes such a runner worthwhile.
+      - name: Clear what a previous job left behind
+        if: runner.environment == 'self-hosted'
+        run: |
+          docker ps -aq | xargs -r docker rm -f
+          docker network prune -f
+          docker volume prune -f
+
+      - uses: actions/checkout@v4
+
+      - name: Resolve package and module directory
+        run: |
+          echo "COMPOSER_NAME=$(jq -r .name composer.json)" >> "$GITHUB_ENV"
+          echo "MODULE_DIR=$(basename "$PWD")" >> "$GITHUB_ENV"
+
+      - name: Start the Magento container
+        run: |
+          openssl req -x509 -newkey rsa:4096 \
+            -keyout .github/workflows/templates/nginx-proxy/magento.test.key \
+            -out .github/workflows/templates/nginx-proxy/magento.test.crt \
+            -days 365 -nodes -subj "/CN=magento.test"
+          docker compose -f .github/workflows/templates/docker-compose.yml up -d --quiet-pull
+
+      - name: Upload the code into the docker container
+        run: |
+          sed -i '/version/d' ./composer.json
+          docker cp $(pwd) magento-project-community-edition:/data/extensions/
+          docker exec magento-project-community-edition ./install-composer-package $COMPOSER_NAME:@dev
+
+      - name: Activate the extension
+        run: |
+          docker exec magento-project-community-edition ./retry "php bin/magento module:enable Magmodules_Reloadify"
+          docker exec magento-project-community-edition ./retry "php bin/magento setup:upgrade --keep-generated --no-interaction"
+          docker exec magento-project-community-edition ./retry "php bin/magento cache:flush"
+
+      - name: Prepare Magento
+        run: |
+          echo "127.0.0.1 magento.test" | sudo tee -a /etc/hosts
+          docker exec magento-project-community-edition /bin/bash ./change-base-url https://magento.test/
+          docker exec magento-project-community-edition ./retry "php bin/magento setup:di:compile"
+          docker exec magento-project-community-edition ./retry "php bin/magento indexer:reindex"
+          docker exec magento-project-community-edition ./retry "php bin/magento cache:flush"
+
+      # A throwaway test database does not need durability; trade it for speed.
+      - name: Tune the test database for throughput
+        run: |
+          docker exec magento-project-community-edition mysql -uroot -proot -e "
+            SET GLOBAL innodb_flush_log_at_trx_commit = 2;
+            SET GLOBAL sync_binlog = 0;
+          " || echo "could not tune MySQL; continuing"
+
+      - name: Configure the shop for the suite
+        run: |
+          docker exec -w /data magento-project-community-edition \
+            bash extensions/$MODULE_DIR/.github/workflows/templates/magento/configure-reloadify.sh
+
+      - name: Check that the storefront and REST API answer
+        run: |
+          curl --fail-with-body -k -s -o /dev/null -w "%{http_code}\n" https://magento.test/
+          curl -k -s -o /dev/null -w "%{http_code}\n" https://magento.test/rest/V1/reloadify/settings
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install the suite
+        run: |
+          cd Test/End-2-end
+          npm ci
+
+      # The REST specs use Playwright's request API; the baseline project drives the admin in Chromium.
+      - name: Install the browser
+        run: |
+          cd Test/End-2-end
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: |
+          cd Test/End-2-end
+          BASE_URL="https://magento.test/" \
+          MAGENTO_CONTAINER="magento-project-community-edition" \
+          FORCE_COLOR=true \
+          npx playwright test
+
+      - name: Dump docker-compose logs
+        if: failure()
+        run: |
+          docker compose -f .github/workflows/templates/docker-compose.yml logs magento > magento.log
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: E2E logs - ${{ matrix.PHP_VERSION }} - ${{ matrix.MAGENTO_VERSION }}
+          retention-days: 14
+          path: |
+            Test/End-2-end/playwright-report
+            Test/End-2-end/test-results
+            Test/End-2-end/test-results.json
+            magento-logs
+            magento.log

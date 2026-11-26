@@ -12,7 +12,6 @@ use Magento\Framework\Api\ExtensibleDataInterface;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
-use Magento\Framework\Serialize\Serializer\Json;
 use Magmodules\Reloadify\Api\RequestLog\Data\DataInterface;
 use Magmodules\Reloadify\Api\RequestLog\Data\DataInterfaceFactory;
 
@@ -29,49 +28,27 @@ class DataModel extends AbstractModel implements ExtensibleDataInterface, DataIn
     protected $_eventPrefix = 'reloadify_request_log';
 
     /**
-     * @var DataObjectHelper
-     */
-    protected $dataObjectHelper;
-
-    /**
-     * @var Json
-     */
-    private $json;
-
-    /**
      * @var DataInterfaceFactory
      */
     protected $dataFactory;
 
     /**
-     * @var DataInterfaceFactory
-     */
-    private $customerDataFactory;
-
-    /**
      * DataModel constructor.
      * @param Context $context
      * @param Registry $registry
-     * @param DataInterfaceFactory $customerDataFactory
      * @param DataObjectHelper $dataObjectHelper
      * @param ResourceModel $resource
      * @param Collection $collection
-     * @param Json $json
      * @param array $data
      */
     public function __construct(
         Context $context,
         Registry $registry,
-        DataInterfaceFactory $customerDataFactory,
-        DataObjectHelper $dataObjectHelper,
+        protected DataObjectHelper $dataObjectHelper,
         ResourceModel $resource,
         Collection $collection,
-        Json $json,
         array $data = []
     ) {
-        $this->customerDataFactory = $customerDataFactory;
-        $this->dataObjectHelper = $dataObjectHelper;
-        $this->json = $json;
         parent::__construct($context, $registry, $resource, $collection, $data);
     }
 
